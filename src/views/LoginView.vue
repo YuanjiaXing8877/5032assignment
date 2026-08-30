@@ -25,7 +25,11 @@ function validatePassword() {
   delete errors.password
   if (!form.password) errors.password = 'Password is required.'
   else if (form.password.length < 8) errors.password = 'Password must contain at least 8 characters.'
+  else if (!/[A-Za-z]/.test(form.password)) errors.password = 'Password must include at least one letter.'
   else if (!/[0-9]/.test(form.password)) errors.password = 'Password must include at least one number.'
+  else if (!/[A-Z]/.test(form.password)) errors.password = 'Password must include at least one uppercase letter.'
+  else if (!/[^A-Za-z0-9\s]/.test(form.password)) errors.password = 'Password must include at least one special character.'
+  else if (/\s/.test(form.password)) errors.password = 'Password must not contain spaces.'
 }
 
 function validate() {
@@ -77,7 +81,7 @@ function login() {
       <div class="login-card">
         <p class="eyebrow">My GreenLink</p>
         <h2 id="login-title">Member sign in</h2>
-        <p class="form-help">Enter a valid email and a password with at least 8 characters and one number.</p>
+        <p class="form-help">Enter a valid email and a password with at least 8 characters, including a number, an uppercase letter and a special character.</p>
 
         <form @submit.prevent="login">
           <div class="field-group">
@@ -89,7 +93,7 @@ function login() {
           <div class="field-group">
             <label for="password">Password</label>
             <div class="password-field">
-              <InputText id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" required minlength="8" autocomplete="current-password" placeholder="Enter your password" :invalid="Boolean(errors.password)" :aria-invalid="Boolean(errors.password)" :aria-describedby="errors.password ? 'password-error' : undefined" @blur="validateField('password')" @input="handleInput('password')" />
+              <InputText id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" required minlength="8" pattern="(?=.*[A-Za-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])\S{8,}" title="Use at least 8 characters, including a number, an uppercase letter and a special character, with no spaces." autocomplete="current-password" placeholder="Enter your password" :invalid="Boolean(errors.password)" :aria-invalid="Boolean(errors.password)" :aria-describedby="errors.password ? 'password-error' : undefined" @blur="validateField('password')" @input="handleInput('password')" />
               <Button class="password-toggle" type="button" :label="showPassword ? 'Hide' : 'Show'" text :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword" />
             </div>
             <small v-if="errors.password" id="password-error" class="field-error" role="alert">{{ errors.password }}</small>

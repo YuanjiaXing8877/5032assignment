@@ -68,12 +68,14 @@ h1, h2 { color: #223b31; font-family: inherit; font-weight: 650; }
 h1 { margin: 4px 0 12px; font-size: 34px; line-height: 1.18; }
 h2 { margin: 3px 0 10px; font-size: 24px; }
 .field-group { min-width: 0; }
-.field-group + .field-group { margin-top: 17px; }
+.login-card .field-group + .field-group { margin-top: 17px; }
 .field-group label { display: block; margin-bottom: 6px; color: #34423c; font-size: 13px; font-weight: 650; }
 .field-group label span { color: var(--error); }
 input, .p-inputtext { width: 100%; border-radius: 4px; }
 .p-inputtext { padding: 11px 12px; border-color: #abb7b1; }
 .p-inputtext:enabled:focus { border-color: var(--green-700); box-shadow: 0 0 0 2px rgba(45,106,80,.12); }
+.profile-select { min-height: 42px; border-color: #abb7b1; border-radius: 4px; color: #26332d; font-size: 13px; }
+.profile-select:focus { border-color: var(--green-700); box-shadow: 0 0 0 2px rgba(45,106,80,.12); }
 input[aria-invalid="true"] { border-color: var(--error); }
 .field-error { display: block; margin-top: 5px; color: var(--error); font-size: 12px; line-height: 1.35; }
 .validation-summary { margin-top: 17px; font-size: 13px; }
@@ -128,7 +130,6 @@ tr:last-child th, tr:last-child td { border-bottom: 0; }
 .role-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; color: var(--green-800); background: var(--green-100); font-size: 11px; font-weight: 650; }
 .success-message { margin: 0 0 14px; border-radius: 3px; font-size: 12px; }
 .edit-form { border-top: 1px solid var(--line); padding-top: 20px; }
-.form-grid .field-group + .field-group { margin-top: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 17px; border-top: 1px solid var(--line); }
 .summary-cards { margin-block: 20px; }
 .summary-cards article { min-height: 92px; padding: 17px 19px; border: 1px solid var(--line); border-radius: 5px; background: white; }
