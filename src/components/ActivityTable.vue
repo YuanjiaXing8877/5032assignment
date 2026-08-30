@@ -1,34 +1,61 @@
 <script setup>
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Tag from 'primevue/tag'
+
 defineProps({
   activities: {
     type: Array,
     required: true
   }
 })
+
+function statusSeverity(status) {
+  if (status === 'Confirmed') return 'success'
+  if (status === 'Saved') return 'warn'
+  return 'info'
+}
 </script>
 
 <template>
-  <div class="table-wrap activity-table-wrap">
-    <table class="activity-table">
-      <caption class="sr-only">Volunteer activity history</caption>
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
-          <th scope="col">Activity</th>
-          <th scope="col">Suburb</th>
-          <th scope="col">Status</th>
-          <th scope="col">Hours</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="activity in activities" :key="activity.id">
-          <td data-label="Date">{{ activity.date }}</td>
-          <td data-label="Activity"><strong>{{ activity.activity }}</strong></td>
-          <td data-label="Suburb">{{ activity.suburb }}</td>
-          <td data-label="Status"><span class="status" :class="activity.status.toLowerCase()">{{ activity.status }}</span></td>
-          <td data-label="Hours">{{ activity.hours || '–' }}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="desktop-data-table" aria-label="Volunteer activity history">
+    <DataTable
+      :value="activities"
+      data-key="id"
+      class="activity-data-table"
+      striped-rows
+      removable-sort
+      table-style="min-width: 44rem"
+    >
+      <Column field="date" header="Date" sortable />
+      <Column field="activity" header="Activity" sortable>
+        <template #body="slotProps">
+          <strong>{{ slotProps.data.activity }}</strong>
+        </template>
+      </Column>
+      <Column field="suburb" header="Suburb" sortable />
+      <Column field="status" header="Status" sortable>
+        <template #body="slotProps">
+          <Tag :value="slotProps.data.status" :severity="statusSeverity(slotProps.data.status)" />
+        </template>
+      </Column>
+      <Column field="hours" header="Hours" sortable>
+        <template #body="slotProps">
+          {{ slotProps.data.hours || '–' }}
+        </template>
+      </Column>
+    </DataTable>
+  </div>
+
+  <div class="mobile-activity-list" aria-label="Volunteer activity history">
+    <article v-for="activity in activities" :key="activity.id" class="mobile-activity-card">
+      <dl>
+        <div><dt>Date</dt><dd>{{ activity.date }}</dd></div>
+        <div><dt>Activity</dt><dd><strong>{{ activity.activity }}</strong></dd></div>
+        <div><dt>Suburb</dt><dd>{{ activity.suburb }}</dd></div>
+        <div><dt>Status</dt><dd><Tag :value="activity.status" :severity="statusSeverity(activity.status)" /></dd></div>
+        <div><dt>Hours</dt><dd>{{ activity.hours || '–' }}</dd></div>
+      </dl>
+    </article>
   </div>
 </template>

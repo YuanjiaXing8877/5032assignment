@@ -28,9 +28,9 @@ function updateUser(updatedUser) {
     <div class="profile-content">
       <section class="welcome-row">
         <div>
-          <p class="eyebrow">Personal dashboard</p>
-          <h1>Welcome back, {{ profileData.user.name.split(' ')[0] }}</h1>
-          <p>Review your personal details and volunteering activity.</p>
+          <p class="eyebrow">Volunteer account</p>
+          <h1>My GreenLink</h1>
+          <p>Welcome back, {{ profileData.user.name.split(' ')[0] }}. Review your details and activity below.</p>
         </div>
         <div class="avatar" aria-hidden="true">{{ profileData.user.name.charAt(0) }}</div>
       </section>

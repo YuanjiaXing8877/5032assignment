@@ -19,7 +19,7 @@ npm run dev
 - Two-way form binding using v-model
 - Show and hide password interaction
 - Editable personal information with field-level validation
-- Personal information and activity history tables
+- Personal information table and sortable PrimeVue DataTable activity history
 - Summary values computed from the activity data
 - Responsive layouts for phone, tablet, desktop and wide screens
 
