@@ -12,7 +12,11 @@ npm run dev
 ## Included in this iteration
 
 - Vue Router navigation between login and profile views
-- Required, email format, password length and password content validation
+- PrimeVue components with the Aura theme and PrimeIcons
+- Built-in HTML validation using required, email, minlength, maxlength and pattern
+- Custom JavaScript validation with field-level feedback
+- Vue events using @submit.prevent, @blur, @input and @click
+- Two-way form binding using v-model
 - Show and hide password interaction
 - Editable personal information with field-level validation
 - Personal information and activity history tables
