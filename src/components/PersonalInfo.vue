@@ -85,8 +85,8 @@ function cancelEditing() {
 
     <Message v-if="savedMessage" severity="success" :closable="false" class="success-message" role="status">{{ savedMessage }}</Message>
 
-    <div v-if="!editing" class="table-wrap information-table-wrap">
-      <table class="information-table">
+    <div v-if="!editing" class="table-wrap table-responsive information-table-wrap">
+      <table class="information-table table mb-0">
         <caption class="sr-only">Personal account information</caption>
         <tbody>
           <tr><th scope="row">Full name</th><td>{{ user.name }}</td><th scope="row">Account type</th><td><span class="role-badge">{{ user.role }}</span></td></tr>
@@ -98,39 +98,39 @@ function cancelEditing() {
     </div>
 
     <form v-else class="edit-form" @submit.prevent="saveDetails">
-      <div class="form-grid">
-        <div class="field-group">
+      <div class="form-grid row g-3">
+        <div class="field-group col-12 col-md-6">
           <label for="profile-name">Full name <span aria-hidden="true">*</span></label>
           <InputText id="profile-name" v-model.trim="draft.name" type="text" required minlength="2" :invalid="Boolean(errors.name)" :aria-invalid="Boolean(errors.name)" :aria-describedby="errors.name ? 'profile-name-error' : undefined" @blur="validateField('name')" @input="handleInput('name')" />
           <small v-if="errors.name" id="profile-name-error" class="field-error">{{ errors.name }}</small>
         </div>
 
-        <div class="field-group">
+        <div class="field-group col-12 col-md-6">
           <label for="profile-email">Email address <span aria-hidden="true">*</span></label>
           <InputText id="profile-email" v-model.trim="draft.email" type="email" required :invalid="Boolean(errors.email)" :aria-invalid="Boolean(errors.email)" :aria-describedby="errors.email ? 'profile-email-error' : undefined" @blur="validateField('email')" @input="handleInput('email')" />
           <small v-if="errors.email" id="profile-email-error" class="field-error">{{ errors.email }}</small>
         </div>
 
-        <div class="field-group">
+        <div class="field-group col-12 col-md-6">
           <label for="profile-phone">Phone number <span aria-hidden="true">*</span></label>
           <InputText id="profile-phone" v-model.trim="draft.phone" type="tel" required pattern="0[2-478](?:[ ]?[0-9]){8}" placeholder="04xx xxx xxx" :invalid="Boolean(errors.phone)" :aria-invalid="Boolean(errors.phone)" :aria-describedby="errors.phone ? 'profile-phone-error' : undefined" @blur="validateField('phone')" @input="handleInput('phone')" />
           <small v-if="errors.phone" id="profile-phone-error" class="field-error">{{ errors.phone }}</small>
         </div>
 
-        <div class="field-group">
+        <div class="field-group col-12 col-md-6">
           <label for="profile-suburb">Suburb <span aria-hidden="true">*</span></label>
           <InputText id="profile-suburb" v-model.trim="draft.suburb" type="text" required :invalid="Boolean(errors.suburb)" :aria-invalid="Boolean(errors.suburb)" :aria-describedby="errors.suburb ? 'profile-suburb-error' : undefined" @blur="validateField('suburb')" @input="handleInput('suburb')" />
           <small v-if="errors.suburb" id="profile-suburb-error" class="field-error">{{ errors.suburb }}</small>
         </div>
 
-        <div class="field-group full-width">
+        <div class="field-group col-12">
           <label for="profile-language">Preferred language</label>
           <InputText id="profile-language" v-model.trim="draft.language" type="text" maxlength="60" :invalid="Boolean(errors.language)" :aria-invalid="Boolean(errors.language)" :aria-describedby="errors.language ? 'profile-language-error' : undefined" @blur="validateField('language')" @input="handleInput('language')" />
           <small v-if="errors.language" id="profile-language-error" class="field-error">{{ errors.language }}</small>
         </div>
       </div>
 
-      <div class="form-actions">
+      <div class="form-actions d-flex flex-column-reverse flex-sm-row justify-content-end">
         <Button class="outline-button" type="button" label="Cancel" outlined @click="cancelEditing" />
         <Button class="primary-button compact-button" type="submit" label="Save changes" icon="pi pi-check" />
       </div>

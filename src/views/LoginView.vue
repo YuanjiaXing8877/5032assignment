@@ -53,8 +53,9 @@ function login() {
 </script>
 
 <template>
-  <main class="login-page">
-    <section class="login-intro" aria-labelledby="welcome-title">
+  <main class="login-page container-xl px-0 my-0 my-sm-4 my-lg-5">
+    <div class="login-layout row g-0">
+    <section class="login-intro col-12 col-md-5 p-4 p-md-5" aria-labelledby="welcome-title">
       <div>
         <p class="eyebrow">Volunteer portal</p>
         <h1 id="welcome-title">Welcome to GreenLink</h1>
@@ -72,7 +73,7 @@ function login() {
       </div>
     </section>
 
-    <section class="login-panel" aria-labelledby="login-title">
+    <section class="login-panel col-12 col-md-7 px-4 py-5 p-md-5" aria-labelledby="login-title">
       <div class="login-card">
         <p class="eyebrow">My GreenLink</p>
         <h2 id="login-title">Member sign in</h2>
@@ -101,5 +102,6 @@ function login() {
         <p class="privacy-note">Your details are used only to display this iteration of the volunteer dashboard.</p>
       </div>
     </section>
+    </div>
   </main>
 </template>

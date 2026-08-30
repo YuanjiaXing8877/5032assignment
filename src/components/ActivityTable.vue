@@ -18,7 +18,7 @@ function statusSeverity(status) {
 </script>
 
 <template>
-  <div class="desktop-data-table" aria-label="Volunteer activity history">
+  <div class="desktop-data-table d-none d-sm-block" aria-label="Volunteer activity history">
     <DataTable
       :value="activities"
       data-key="id"
@@ -47,7 +47,7 @@ function statusSeverity(status) {
     </DataTable>
   </div>
 
-  <div class="mobile-activity-list" aria-label="Volunteer activity history">
+  <div class="mobile-activity-list d-grid d-sm-none" aria-label="Volunteer activity history">
     <article v-for="activity in activities" :key="activity.id" class="mobile-activity-card">
       <dl>
         <div><dt>Date</dt><dd>{{ activity.date }}</dd></div>

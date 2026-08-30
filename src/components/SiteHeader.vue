@@ -18,30 +18,34 @@ function logout() {
 </script>
 
 <template>
-  <header class="site-header">
-    <RouterLink class="brand" to="/" aria-label="GreenLink Melbourne home">
-      <span class="brand-mark" aria-hidden="true">GL</span>
-      <span class="brand-name"><strong>GreenLink</strong><small>Melbourne</small></span>
-    </RouterLink>
+  <header class="site-header navbar navbar-expand-md">
+    <div class="container-xl px-0">
+      <RouterLink class="brand navbar-brand" to="/" aria-label="GreenLink Melbourne home">
+        <span class="brand-mark" aria-hidden="true">GL</span>
+        <span class="brand-name"><strong>GreenLink</strong><small class="d-none d-sm-block">Melbourne</small></span>
+      </RouterLink>
 
-    <template v-if="isProfile">
-      <button
-        class="menu-button"
-        type="button"
-        :aria-expanded="menuOpen"
-        aria-controls="main-navigation"
-        @click="menuOpen = !menuOpen"
-      >
-        <span class="sr-only">Toggle navigation</span>
-        <span aria-hidden="true">{{ menuOpen ? '×' : '☰' }}</span>
-      </button>
+      <template v-if="isProfile">
+        <button
+          class="menu-button navbar-toggler"
+          type="button"
+          :aria-expanded="menuOpen"
+          aria-controls="main-navigation"
+          @click="menuOpen = !menuOpen"
+        >
+          <span class="sr-only">Toggle navigation</span>
+          <span aria-hidden="true">{{ menuOpen ? '×' : '☰' }}</span>
+        </button>
 
-      <nav id="main-navigation" class="header-nav" :class="{ open: menuOpen }" aria-label="Main navigation">
-        <RouterLink to="/profile#overview">Overview</RouterLink>
-        <RouterLink to="/profile#personal">Personal information</RouterLink>
-        <RouterLink to="/profile#activity">Activity history</RouterLink>
-        <button class="logout-button" type="button" @click="logout">Log out</button>
-      </nav>
-    </template>
+        <nav id="main-navigation" class="header-nav collapse navbar-collapse" :class="{ show: menuOpen }" aria-label="Main navigation">
+          <div class="navbar-nav ms-auto align-items-md-center">
+            <RouterLink class="nav-link" to="/profile#overview">Overview</RouterLink>
+            <RouterLink class="nav-link" to="/profile#personal">Personal information</RouterLink>
+            <RouterLink class="nav-link" to="/profile#activity">Activity history</RouterLink>
+            <button class="logout-button" type="button" @click="logout">Log out</button>
+          </div>
+        </nav>
+      </template>
+    </div>
   </header>
 </template>

@@ -17,15 +17,20 @@ function updateUser(updatedUser) {
 </script>
 
 <template>
-  <main id="overview" class="profile-page page-container">
-    <aside class="profile-sidebar" aria-label="Profile sections">
-      <p class="sidebar-title">My GreenLink</p>
-      <a class="active" href="#overview">Overview</a>
-      <a href="#personal">Personal information</a>
-      <a href="#activity">Activity history</a>
+  <main id="overview" class="profile-page container-xl">
+    <div class="row g-3 g-lg-4">
+    <aside class="profile-sidebar-column col-12 col-lg-3" aria-label="Profile sections">
+      <div class="profile-sidebar">
+        <p class="sidebar-title">My GreenLink</p>
+        <nav class="profile-sidebar-nav nav nav-pills flex-row flex-lg-column flex-nowrap overflow-auto">
+          <a class="nav-link active" href="#overview">Overview</a>
+          <a class="nav-link" href="#personal">Personal information</a>
+          <a class="nav-link" href="#activity">Activity history</a>
+        </nav>
+      </div>
     </aside>
 
-    <div class="profile-content">
+    <div class="profile-content col-12 col-lg-9">
       <section class="welcome-row">
         <div>
           <p class="eyebrow">Volunteer account</p>
@@ -47,6 +52,7 @@ function updateUser(updatedUser) {
         </div>
         <ActivityTable :activities="profileData.activities" />
       </section>
+    </div>
     </div>
   </main>
 </template>
