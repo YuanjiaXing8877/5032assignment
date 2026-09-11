@@ -5,11 +5,14 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { profileData } from '../data/profileData'
+import { authErrorMessage, login as authenticate } from '../services/auth'
 
 const router = useRouter()
 const showPassword = ref(false)
 const form = reactive({ email: '', password: '' })
 const errors = reactive({})
+const submitting = ref(false)
+const authenticationError = ref('')
 
 function clearErrors() {
   Object.keys(errors).forEach((key) => delete errors[key])
@@ -49,10 +52,22 @@ function handleInput(field) {
   if (errors[field]) validateField(field)
 }
 
-function login() {
+async function login() {
   if (!validate()) return
-  profileData.user.email = form.email
-  router.push('/profile')
+  authenticationError.value = ''
+  submitting.value = true
+  try {
+    const user = await authenticate(form.email, form.password)
+    Object.assign(profileData.user, { name: user.name, email: user.email, role: user.role })
+    const destination = typeof router.currentRoute.value.query.redirect === 'string'
+      ? router.currentRoute.value.query.redirect
+      : user.role === 'Administrator' ? '/admin' : '/profile'
+    router.replace(destination)
+  } catch (error) {
+    authenticationError.value = authErrorMessage(error)
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -81,7 +96,7 @@ function login() {
       <div class="login-card">
         <p class="eyebrow">My GreenLink</p>
         <h2 id="login-title">Member sign in</h2>
-        <p class="form-help">Enter a valid email and a password with at least 8 characters, including a number, an uppercase letter and a special character.</p>
+        <p class="form-help">Sign in to access your account. New members can create a Volunteer account.</p>
 
         <form @submit.prevent="login">
           <div class="field-group">
@@ -100,10 +115,17 @@ function login() {
           </div>
 
           <Message v-if="Object.keys(errors).length" severity="error" :closable="false" class="validation-summary">Please correct the highlighted fields.</Message>
-          <Button class="primary-button login-button" type="submit" label="Log in" icon="pi pi-sign-in" />
+          <Message v-if="authenticationError" severity="error" :closable="false" class="validation-summary" role="alert">{{ authenticationError }}</Message>
+          <Button class="primary-button login-button" type="submit" :label="submitting ? 'Signing in…' : 'Log in'" icon="pi pi-sign-in" :disabled="submitting" />
         </form>
 
-        <p class="privacy-note">Your details are used only to display this iteration of the volunteer dashboard.</p>
+        <p class="auth-switch">New to GreenLink? <RouterLink to="/register">Create an account</RouterLink></p>
+        <div class="demo-accounts" aria-label="Demonstration accounts">
+          <strong>Demo accounts</strong>
+          <span>Volunteer: volunteer@greenlink.test / Volunteer1!</span>
+          <span>Administrator: admin@greenlink.test / Administrator1!</span>
+        </div>
+        <p class="privacy-note">Authentication data stays in this browser for this prototype.</p>
       </div>
     </section>
     </div>

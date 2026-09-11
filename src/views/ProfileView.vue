@@ -4,6 +4,13 @@ import ActivityTable from '../components/ActivityTable.vue'
 import PersonalInfo from '../components/PersonalInfo.vue'
 import SummaryCards from '../components/SummaryCards.vue'
 import { profileData } from '../data/profileData'
+import { authState } from '../services/auth'
+
+Object.assign(profileData.user, {
+  name: authState.user.name,
+  email: authState.user.email,
+  role: authState.user.role
+})
 
 const summary = computed(() => ({
   activities: profileData.activities.length,
@@ -33,7 +40,7 @@ function updateUser(updatedUser) {
     <div class="profile-content col-12 col-lg-9">
       <section class="welcome-row">
         <div>
-          <p class="eyebrow">Volunteer account</p>
+          <p class="eyebrow">{{ authState.user.role }} account</p>
           <h1>My GreenLink</h1>
           <p>Welcome back, {{ profileData.user.name.split(' ')[0] }}. Review your details and activity below.</p>
         </div>
