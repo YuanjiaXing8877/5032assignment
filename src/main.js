@@ -8,7 +8,9 @@ import 'primeicons/primeicons.css'
 import './style.css'
 import { initialiseAuth } from './services/auth'
 
-initialiseAuth().finally(() => {
+initialiseAuth().catch((error) => {
+  console.error('Firebase authentication could not be initialised.', error)
+}).finally(() => {
   createApp(App)
     .use(router)
     .use(PrimeVue, {

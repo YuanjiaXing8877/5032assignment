@@ -120,12 +120,7 @@ async function login() {
         </form>
 
         <p class="auth-switch">New to GreenLink? <RouterLink to="/register">Create an account</RouterLink></p>
-        <div class="demo-accounts" aria-label="Demonstration accounts">
-          <strong>Demo accounts</strong>
-          <span>Volunteer: volunteer@greenlink.test / Volunteer1!</span>
-          <span>Administrator: admin@greenlink.test / Administrator1!</span>
-        </div>
-        <p class="privacy-note">Authentication data stays in this browser for this prototype.</p>
+        <p class="privacy-note">Your password is handled securely by Firebase Authentication and is never stored by this application.</p>
       </div>
     </section>
     </div>

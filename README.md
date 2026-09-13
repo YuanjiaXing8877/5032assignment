@@ -9,21 +9,19 @@ npm install
 npm run dev
 ```
 
-## Demo accounts
+## Firebase setup
 
-| Role | Email | Password | Access |
-| --- | --- | --- | --- |
-| Volunteer | `volunteer@greenlink.test` | `Volunteer1!` | Personal account |
-| Coordinator | `coordinator@greenlink.test` | `Coordinator1!` | Personal account; ready for coordinator pages |
-| Administrator | `admin@greenlink.test` | `Administrator1!` | Personal account and administrator dashboard |
+The application is connected to the `projectgreenlink-b2380` Firebase project. Local Firebase values are stored in the Git-ignored `.env.local`; `.env.example` documents the required variables.
 
-Newly registered accounts always receive the Volunteer role. This prevents a public user from granting themselves staff privileges.
+In Firebase Console, enable **Authentication → Sign-in method → Email/Password** before registering users. Firestore is configured in the Melbourne region and its role rules are stored in `firestore.rules`.
+
+Newly registered accounts always receive the Volunteer role. To create the first Administrator for demonstration, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. This prevents public users from granting themselves staff privileges.
 
 ## BR C.1 Authentication
 
 - Register and log in with validated email/password fields
-- Passwords stored as SHA-256 hashes rather than plain text
-- Session held in `sessionStorage`, so closing the browser tab signs the user out
+- Passwords handled by Firebase Authentication and never stored by this application
+- Firebase session persistence ends when the browser session closes
 - Duplicate-account and invalid-credential errors
 - Log out action and protected personal account route
 
@@ -51,6 +49,6 @@ Newly registered accounts always receive the Volunteer role. This prevents a pub
 - Summary values computed from the activity data
 - Responsive layouts for phone, tablet, desktop and wide screens using Bootstrap breakpoints
 
-## Prototype security note
+## Security note
 
-This iteration deliberately uses browser storage and is suitable for marking and local demonstration only. A production deployment should replace `src/services/auth.js` with Firebase Authentication and store trusted role claims on the server, as proposed in the design report. Client-side route guards improve the interface but cannot secure server data by themselves.
+Vue Router guards control page navigation, while Firestore Security Rules protect role data independently of the interface. Public registration can only create a Volunteer profile, members cannot change their own role, and Administrator accounts can manage user documents. For a larger production system, privileged roles should additionally be issued as Firebase custom claims from a trusted server environment.
