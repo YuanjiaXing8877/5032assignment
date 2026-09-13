@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdministrator() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrator';
+    }
+
+    function validRole(role) {
+      return role in ['Volunteer', 'Coordinator', 'Administrator'];
+    }
+
+    function validRequestedRole(role) {
+      return role in ['Volunteer', 'Coordinator'];
+    }
+
+    function validApprovalStatus(status) {
+      return status in ['Not requested', 'Pending', 'Approved'];
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdministrator();
+
+      allow create: if isOwner(userId)
+        && request.resource.data.role == 'Volunteer'
+        && validRequestedRole(request.resource.data.requestedRole)
+        && ((request.resource.data.requestedRole == 'Coordinator'
+            && request.resource.data.approvalStatus == 'Pending')
+          || (request.resource.data.requestedRole == 'Volunteer'
+            && request.resource.data.approvalStatus == 'Not requested'))
+        && request.resource.data.email == request.auth.token.email;
+
+      allow update: if (isAdministrator()
+          && userId != request.auth.uid
+          && validRole(request.resource.data.role)
+          && validApprovalStatus(request.resource.data.approvalStatus)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['role', 'approvalStatus']))
+        || (isOwner(userId)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.requestedRole == resource.data.requestedRole
+          && request.resource.data.approvalStatus == resource.data.approvalStatus
+          && request.resource.data.email == resource.data.email);
+
+      allow delete: if isAdministrator();
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'activityId', 'activityTitle', 'userId', 'score', 'updatedAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && ratingId == request.resource.data.activityId + '_' + request.auth.uid
+        && request.resource.data.activityId is string
+        && request.resource.data.activityTitle is string
+        && request.resource.data.activityTitle.size() <= 100
+        && request.resource.data.score is int
+        && request.resource.data.score >= 1
+        && request.resource.data.score <= 5;
+
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.activityId == resource.data.activityId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['score', 'activityTitle', 'updatedAt'])
+        && request.resource.data.score is int
+        && request.resource.data.score >= 1
+        && request.resource.data.score <= 5
+        && request.resource.data.activityTitle is string
+        && request.resource.data.activityTitle.size() <= 100;
+
+      allow delete: if signedIn()
+        && (resource.data.userId == request.auth.uid || isAdministrator());
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

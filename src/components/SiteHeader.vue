@@ -1,19 +1,21 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { authState, logout as signOutUser } from '../services/auth'
 
 const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
-const isProfile = computed(() => route.name === 'profile')
+const isAuthenticated = computed(() => Boolean(authState.user))
 
 watch(() => route.fullPath, () => {
   menuOpen.value = false
 })
 
-function logout() {
+async function logout() {
   menuOpen.value = false
-  router.push('/')
+  await signOutUser()
+  router.replace('/')
 }
 </script>
 
@@ -25,7 +27,7 @@ function logout() {
         <span class="brand-name"><strong>GreenLink</strong><small class="d-none d-sm-block">Melbourne</small></span>
       </RouterLink>
 
-      <template v-if="isProfile">
+      <template v-if="isAuthenticated">
         <button
           class="menu-button navbar-toggler"
           type="button"
@@ -39,9 +41,9 @@ function logout() {
 
         <nav id="main-navigation" class="header-nav collapse navbar-collapse" :class="{ show: menuOpen }" aria-label="Main navigation">
           <div class="navbar-nav ms-auto align-items-md-center">
-            <RouterLink class="nav-link" to="/profile#overview">Overview</RouterLink>
-            <RouterLink class="nav-link" to="/profile#personal">Personal information</RouterLink>
-            <RouterLink class="nav-link" to="/profile#activity">Activity history</RouterLink>
+            <RouterLink class="nav-link" to="/profile">My account</RouterLink>
+            <RouterLink v-if="authState.user.role === 'Administrator'" class="nav-link" to="/admin">Administration</RouterLink>
+            <span class="header-role">{{ authState.user.role }}</span>
             <button class="logout-button" type="button" @click="logout">Log out</button>
           </div>
         </nav>
