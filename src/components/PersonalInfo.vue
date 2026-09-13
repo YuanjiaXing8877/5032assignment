@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
+import { sanitizeEmail, sanitizePhone, sanitizePlainText } from '../utils/sanitize'
 
 const props = defineProps({
   user: {
@@ -82,7 +83,16 @@ function validate() {
   return Object.keys(errors).length === 0
 }
 
+function sanitizeDraft() {
+  draft.name = sanitizePlainText(draft.name, 80)
+  draft.email = sanitizeEmail(draft.email)
+  draft.phone = sanitizePhone(draft.phone)
+  draft.suburb = sanitizePlainText(draft.suburb, 80)
+  otherLanguage.value = sanitizePlainText(otherLanguage.value, 60)
+}
+
 function saveDetails() {
+  sanitizeDraft()
   if (!validate()) return
   const selectedLanguage = languageChoice.value === 'Other' ? otherLanguage.value.trim() : languageChoice.value
   emit('save', { ...draft, language: selectedLanguage })

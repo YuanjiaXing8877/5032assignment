@@ -2,6 +2,7 @@
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Tag from 'primevue/tag'
+import ActivityRating from './ActivityRating.vue'
 
 defineProps({
   activities: {
@@ -25,7 +26,7 @@ function statusSeverity(status) {
       class="activity-data-table"
       striped-rows
       removable-sort
-      table-style="min-width: 44rem"
+      table-style="min-width: 60rem"
     >
       <Column field="date" header="Date" sortable />
       <Column field="activity" header="Activity" sortable>
@@ -44,6 +45,12 @@ function statusSeverity(status) {
           {{ slotProps.data.hours || '–' }}
         </template>
       </Column>
+      <Column header="Community rating">
+        <template #body="slotProps">
+          <ActivityRating v-if="slotProps.data.status === 'Completed'" :activity="slotProps.data" />
+          <span v-else class="rating-unavailable">Available after attendance</span>
+        </template>
+      </Column>
     </DataTable>
   </div>
 
@@ -55,6 +62,7 @@ function statusSeverity(status) {
         <div><dt>Suburb</dt><dd>{{ activity.suburb }}</dd></div>
         <div><dt>Status</dt><dd><Tag :value="activity.status" :severity="statusSeverity(activity.status)" /></dd></div>
         <div><dt>Hours</dt><dd>{{ activity.hours || '–' }}</dd></div>
+        <div><dt>Rating</dt><dd><ActivityRating v-if="activity.status === 'Completed'" :activity="activity" /><span v-else class="rating-unavailable">Available after attendance</span></dd></div>
       </dl>
     </article>
   </div>

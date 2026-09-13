@@ -6,6 +6,7 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { profileData } from '../data/profileData'
 import { authErrorMessage, login as authenticate } from '../services/auth'
+import { sanitizeEmail } from '../utils/sanitize'
 
 const router = useRouter()
 const showPassword = ref(false)
@@ -20,6 +21,7 @@ function clearErrors() {
 
 function validateEmail() {
   delete errors.email
+  form.email = sanitizeEmail(form.email)
   if (!form.email.trim()) errors.email = 'Email address is required.'
   else if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Enter a valid email address.'
 }

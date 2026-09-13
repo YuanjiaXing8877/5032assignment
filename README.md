@@ -36,6 +36,23 @@ New users can register as a Volunteer or apply for Coordinator access. Coordinat
 - Administrators can review all Firebase user profiles and approve or change roles
 - Administrators cannot change their own role from the dashboard
 
+## BR C.3 Rating
+
+- Completed activities provide an accessible 1–5 star rating control
+- Each user has one Firestore rating document per activity and can update it
+- All signed-in users see a live aggregate average and rating count
+- Submission, loading and error feedback are shown next to the rating control
+- Firestore rules validate ownership, document shape and the 1–5 score range
+
+## BR C.4 Security
+
+- Firebase Authentication handles passwords outside the application
+- Firestore rules enforce ownership, valid roles, approval states and rating ranges
+- A shared sanitisation utility normalises text, removes control characters and angle brackets, collapses abnormal whitespace and applies length limits
+- Registration, login, profile and rating write paths sanitise relevant text before validation or storage
+- Passwords are validated exactly as entered and are never silently modified
+- Vue interpolation is used for user content; the application does not use `v-html`
+
 ## Other included features
 
 - Vue Router navigation between login and profile views

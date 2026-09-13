@@ -6,6 +6,7 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { profileData } from '../data/profileData'
 import { authErrorMessage, register } from '../services/auth'
+import { sanitizeEmail, sanitizePlainText } from '../utils/sanitize'
 
 const router = useRouter()
 const showPassword = ref(false)
@@ -16,6 +17,8 @@ const errors = reactive({})
 
 function validate() {
   Object.keys(errors).forEach((key) => delete errors[key])
+  form.name = sanitizePlainText(form.name, 80)
+  form.email = sanitizeEmail(form.email)
   if (form.name.trim().length < 2) errors.name = 'Enter your full name.'
   if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Enter a valid email address.'
   if (form.password.length < 8 || !/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password) || !/[^A-Za-z0-9\s]/.test(form.password) || /\s/.test(form.password)) {

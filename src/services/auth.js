@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseConfigured, firestore } from './firebase'
+import { sanitizeEmail, sanitizePlainText } from '../utils/sanitize'
 
 const allowedRoles = ['Volunteer', 'Coordinator', 'Administrator']
 
@@ -24,7 +25,7 @@ export const isAuthenticated = computed(() => Boolean(authState.user))
 export const isAdministrator = computed(() => authState.user?.role === 'Administrator')
 
 function normaliseEmail(email) {
-  return email.trim().toLowerCase()
+  return sanitizeEmail(email)
 }
 
 async function createPublicUser(firebaseUser) {
@@ -88,7 +89,7 @@ export async function login(email, password) {
 
 export async function register({ name, email, password, requestedRole = 'Volunteer' }) {
   requireFirebaseConfiguration()
-  const cleanName = name.trim()
+  const cleanName = sanitizePlainText(name, 80)
   const cleanEmail = normaliseEmail(email)
   const safeRequestedRole = requestedRole === 'Coordinator' ? 'Coordinator' : 'Volunteer'
   const credential = await createUserWithEmailAndPassword(firebaseAuth, cleanEmail, password)
