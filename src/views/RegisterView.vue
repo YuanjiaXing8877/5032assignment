@@ -11,7 +11,7 @@ const router = useRouter()
 const showPassword = ref(false)
 const submitting = ref(false)
 const authenticationError = ref('')
-const form = reactive({ name: '', email: '', password: '', confirmPassword: '' })
+const form = reactive({ name: '', email: '', password: '', confirmPassword: '', requestedRole: 'Volunteer' })
 const errors = reactive({})
 
 function validate() {
@@ -46,7 +46,7 @@ async function submitRegistration() {
     <section class="auth-card" aria-labelledby="register-title">
       <p class="eyebrow">Join GreenLink</p>
       <h1 id="register-title">Create your account</h1>
-      <p class="form-help">Public registration creates a Volunteer account. Staff roles are assigned by an administrator.</p>
+      <p class="form-help">Create a Volunteer account or request Coordinator access. Staff access requires administrator approval.</p>
 
       <form @submit.prevent="submitRegistration" novalidate>
         <div class="field-group">
@@ -58,6 +58,14 @@ async function submitRegistration() {
           <label for="register-email">Email address</label>
           <InputText id="register-email" v-model.trim="form.email" type="email" autocomplete="email" maxlength="120" :invalid="Boolean(errors.email)" />
           <small v-if="errors.email" class="field-error" role="alert">{{ errors.email }}</small>
+        </div>
+        <div class="field-group">
+          <label for="requested-role">How would you like to participate?</label>
+          <select id="requested-role" v-model="form.requestedRole" class="form-select profile-select">
+            <option value="Volunteer">Volunteer</option>
+            <option value="Coordinator">Apply to be a Coordinator</option>
+          </select>
+          <small class="field-hint">Coordinator requests remain Volunteer accounts until an administrator approves them.</small>
         </div>
         <div class="field-group">
           <label for="register-password">Password</label>
@@ -74,7 +82,7 @@ async function submitRegistration() {
         </div>
 
         <Message v-if="authenticationError" severity="error" :closable="false" class="validation-summary" role="alert">{{ authenticationError }}</Message>
-        <Button class="primary-button login-button" type="submit" :label="submitting ? 'Creating account…' : 'Create Volunteer account'" icon="pi pi-user-plus" :disabled="submitting" />
+        <Button class="primary-button login-button" type="submit" :label="submitting ? 'Creating account…' : form.requestedRole === 'Coordinator' ? 'Create account and apply' : 'Create Volunteer account'" icon="pi pi-user-plus" :disabled="submitting" />
       </form>
       <p class="auth-switch">Already have an account? <RouterLink to="/">Sign in</RouterLink></p>
     </section>

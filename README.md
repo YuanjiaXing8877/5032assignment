@@ -15,7 +15,7 @@ The application is connected to the `projectgreenlink-b2380` Firebase project. L
 
 In Firebase Console, enable **Authentication → Sign-in method → Email/Password** before registering users. Firestore is configured in the Melbourne region and its role rules are stored in `firestore.rules`.
 
-Newly registered accounts always receive the Volunteer role. To create the first Administrator for demonstration, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. This prevents public users from granting themselves staff privileges.
+New users can register as a Volunteer or apply for Coordinator access. Coordinator applications retain the Volunteer role with a `Pending` status until an Administrator approves them. To create the first Administrator, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. After that, roles can be managed from the Administrator dashboard. This prevents public users from granting themselves staff privileges.
 
 ## BR C.1 Authentication
 
@@ -33,6 +33,8 @@ Newly registered accounts always receive the Volunteer role. To create the first
 - `/admin` is restricted to Administrator accounts
 - Authenticated users without the required role see an access-denied page
 - Navigation only displays the Administration link to administrators
+- Administrators can review all Firebase user profiles and approve or change roles
+- Administrators cannot change their own role from the dashboard
 
 ## Other included features
 

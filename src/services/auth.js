@@ -8,7 +8,7 @@ import {
   signOut,
   updateProfile
 } from 'firebase/auth'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseConfigured, firestore } from './firebase'
 
 const allowedRoles = ['Volunteer', 'Coordinator', 'Administrator']
@@ -42,7 +42,9 @@ async function createPublicUser(firebaseUser) {
     uid: firebaseUser.uid,
     name: account.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'GreenLink member',
     email: firebaseUser.email,
-    role: allowedRoles.includes(account.role) ? account.role : 'Volunteer'
+    role: allowedRoles.includes(account.role) ? account.role : 'Volunteer',
+    requestedRole: account.requestedRole || 'Volunteer',
+    approvalStatus: account.approvalStatus || 'Not requested'
   }
 }
 
@@ -84,10 +86,11 @@ export async function login(email, password) {
   return authState.user
 }
 
-export async function register({ name, email, password }) {
+export async function register({ name, email, password, requestedRole = 'Volunteer' }) {
   requireFirebaseConfiguration()
   const cleanName = name.trim()
   const cleanEmail = normaliseEmail(email)
+  const safeRequestedRole = requestedRole === 'Coordinator' ? 'Coordinator' : 'Volunteer'
   const credential = await createUserWithEmailAndPassword(firebaseAuth, cleanEmail, password)
 
   await updateProfile(credential.user, { displayName: cleanName })
@@ -95,6 +98,8 @@ export async function register({ name, email, password }) {
     name: cleanName,
     email: cleanEmail,
     role: 'Volunteer',
+    requestedRole: safeRequestedRole,
+    approvalStatus: safeRequestedRole === 'Coordinator' ? 'Pending' : 'Not requested',
     createdAt: serverTimestamp()
   })
 
@@ -112,6 +117,28 @@ export function canAccess(roles = []) {
   return !roles.length || roles.includes(authState.user?.role)
 }
 
+export async function listUserAccounts() {
+  requireFirebaseConfiguration()
+  if (!isAdministrator.value) throw new Error('auth/insufficient-permission')
+
+  const snapshot = await getDocs(collection(firestore, 'users'))
+  return snapshot.docs
+    .map((userDocument) => ({ id: userDocument.id, ...userDocument.data() }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+}
+
+export async function updateUserRole(userId, role) {
+  requireFirebaseConfiguration()
+  if (!isAdministrator.value) throw new Error('auth/insufficient-permission')
+  if (userId === authState.user.uid) throw new Error('auth/cannot-change-own-role')
+  if (!allowedRoles.includes(role)) throw new Error('auth/invalid-role')
+
+  await updateDoc(doc(firestore, 'users', userId), {
+    role,
+    approvalStatus: role === 'Volunteer' ? 'Not requested' : 'Approved'
+  })
+}
+
 export function authErrorMessage(error) {
   const messages = {
     'auth/missing-configuration': 'Firebase is not configured yet. Add the project settings to .env.local and restart the development server.',
@@ -123,7 +150,10 @@ export function authErrorMessage(error) {
     'auth/weak-password': 'Choose a stronger password with at least 8 characters.',
     'auth/too-many-requests': 'Too many attempts. Please wait before trying again.',
     'auth/network-request-failed': 'Unable to contact Firebase. Check your connection and try again.',
-    'auth/operation-not-allowed': 'Email/password sign-in is not enabled in Firebase Authentication.'
+    'auth/operation-not-allowed': 'Email/password sign-in is not enabled in Firebase Authentication.',
+    'auth/insufficient-permission': 'Only administrators can manage user roles.',
+    'auth/cannot-change-own-role': 'You cannot change your own administrator role.',
+    'permission-denied': 'Firestore denied this operation. Confirm that the latest security rules are deployed.'
   }
   return messages[error?.code || error?.message] || 'Authentication was unsuccessful. Please try again.'
 }

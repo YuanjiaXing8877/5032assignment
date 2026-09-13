@@ -47,6 +47,11 @@ function updateUser(updatedUser) {
         <div class="avatar" aria-hidden="true">{{ profileData.user.name.charAt(0) }}</div>
       </section>
 
+      <div v-if="authState.user.approvalStatus === 'Pending'" class="pending-role-note" role="status">
+        <i class="pi pi-clock" aria-hidden="true"></i>
+        Your Coordinator application is awaiting administrator approval. You currently have Volunteer access.
+      </div>
+
       <PersonalInfo :user="profileData.user" @save="updateUser" />
       <SummaryCards :summary="summary" />
 
