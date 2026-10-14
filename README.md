@@ -71,3 +71,21 @@ New users can register as a Volunteer or apply for Coordinator access. Coordinat
 ## Security note
 
 Vue Router guards control page navigation, while Firestore Security Rules protect role data independently of the interface. Public registration can only create a Volunteer profile, members cannot change their own role, and Administrator accounts can manage user documents. For a larger production system, privileged roles should additionally be issued as Firebase custom claims from a trusted server environment.
+# Attachment emails
+
+Signed-in members can open **Send email** to send a message with one to five attachments (5 MB combined). The server uses SendGrid and the member's authenticated email as Reply-To. Each account is limited to one attempt per minute and 20 attempts per UTC day, including failed attempts. Attachment data is forwarded to SendGrid without being stored in Firestore. A successful response means SendGrid accepted the email, rather than confirming inbox delivery.
+
+Setup:
+
+1. Enable Firebase's Blaze plan for Cloud Functions and ensure Firestore is available.
+2. In SendGrid, verify a sender address and create an API key with Mail Send permission.
+3. Run `npm --prefix functions install`.
+4. Copy `functions/.env.example` to `functions/.env` and set `SENDGRID_FROM_EMAIL` to the verified sender address.
+5. Run `firebase functions:secrets:set SENDGRID_API_KEY` and enter the key at the prompt. Keep it out of frontend environment variables.
+6. Run `firebase deploy --only functions:sendEmail` for the project's Firebase project. The function and client both use `australia-southeast2`.
+7. Start the app with `npm run dev`, sign in, open **Send email**, and send a small attachment to an inbox you control. Check the received attachment and Reply-To address.
+
+Run `npm --prefix functions test` to verify attachment validation and mocked provider responses. Real delivery requires the configuration and deployment above.
+
+References: [SendGrid Mail Send API](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send), [Firebase callable functions](https://firebase.google.com/docs/functions/callable).
+

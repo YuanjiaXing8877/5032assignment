@@ -42,6 +42,7 @@ async function logout() {
         <nav id="main-navigation" class="header-nav collapse navbar-collapse" :class="{ show: menuOpen }" aria-label="Main navigation">
           <div class="navbar-nav ms-auto align-items-md-center">
             <RouterLink class="nav-link" to="/profile">My account</RouterLink>
+            <RouterLink class="nav-link" to="/email">Send email</RouterLink>
             <RouterLink v-if="authState.user.role === 'Administrator'" class="nav-link" to="/admin">Administration</RouterLink>
             <span class="header-role">{{ authState.user.role }}</span>
             <button class="logout-button" type="button" @click="logout">Log out</button>
