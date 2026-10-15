@@ -82,7 +82,7 @@ Setup:
 3. Run `npm --prefix functions install`.
 4. Copy `functions/.env.example` to `functions/.env` and set `SENDGRID_FROM_EMAIL` to the verified sender address.
 5. Run `firebase functions:secrets:set SENDGRID_API_KEY` and enter the key at the prompt. Keep it out of frontend environment variables.
-6. Run `firebase deploy --only functions:sendEmail` for the project's Firebase project. The function and client both use `australia-southeast2`.
+6. Run `firebase deploy --only functions:email:sendEmail --project projectgreenlink-b2380` for the project's Firebase project. The function and client both use `australia-southeast2`.
 7. Start the app with `npm run dev`, sign in, open **Send email**, and send a small attachment to an inbox you control. Check the received attachment and Reply-To address.
 
 Run `npm --prefix functions test` to verify attachment validation and mocked provider responses. Real delivery requires the configuration and deployment above.
