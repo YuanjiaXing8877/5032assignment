@@ -33,6 +33,36 @@ export async function deliverMail(payload, apiKey, fetcher = fetch) {
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(20000)
   })
-  if (response.status !== 202) throw new Error('Email provider rejected the request.')
+  if (response.status !== 202) {
+    // Inspect provider errors without logging recipients, message bodies or files.
+    const detail = await response.text().catch(() => '')
+    let code = 'unavailable'
+    let reason = 'provider-unavailable'
+    let message = 'The email service rejected this request. Please try again later.'
+    if (/verified sender|sender identity|from address.*verified/i.test(detail)) {
+      code = 'failed-precondition'
+      reason = 'sender-unverified'
+      message = 'The sender email has not been verified. Complete sender verification before sending.'
+    } else if (response.status === 401) {
+      code = 'failed-precondition'
+      reason = 'invalid-api-key'
+      message = 'The email service API key is invalid or expired. Please contact the administrator.'
+    } else if (response.status === 403) {
+      code = 'failed-precondition'
+      reason = 'sending-not-authorised'
+      message = 'The email service has not authorised sending. Check the account status and Mail Send permission.'
+    } else if (response.status === 429 || /credits.*exceeded|maximum credits|quota/i.test(detail)) {
+      code = 'resource-exhausted'
+      reason = 'provider-limit'
+      message = 'The email service sending limit has been reached. Please check the sending allowance.'
+    } else if (response.status === 400 || response.status === 413) {
+      code = 'invalid-argument'
+      reason = 'provider-validation'
+      message = 'The email service rejected the message or attachments. Check the recipient and selected files.'
+    }
+    const error = new Error(message)
+    Object.assign(error, { code, reason, providerStatus: response.status })
+    throw error
+  }
   return { accepted: true }
 }

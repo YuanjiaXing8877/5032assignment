@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret, defineString } from 'firebase-functions/params'
+import { error as logError } from 'firebase-functions/logger'
 import { buildMail, deliverMail } from './mail.js'
 
 initializeApp()
@@ -26,5 +27,9 @@ export const sendEmail = onCall({ region: 'australia-southeast2', secrets: [apiK
     transaction.set(quota, { lastAttempt: now, day: new Date(now).toISOString().slice(0, 10), count: count + 1 })
   })
   try { return await deliverMail(payload, apiKey.value()) }
-  catch { throw new HttpsError('unavailable', 'Unable to confirm email acceptance. Check your inbox before trying again.') }
+  catch (error) {
+    logError('Email delivery failed', { providerStatus: error.providerStatus || null, reason: error.reason || 'network-error' })
+    if (error.reason) throw new HttpsError(error.code, error.message)
+    throw new HttpsError('unavailable', 'Unable to confirm email acceptance. Check your inbox before trying again.')
+  }
 })

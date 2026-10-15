@@ -89,3 +89,9 @@ Run `npm --prefix functions test` to verify attachment validation and mocked pro
 
 References: [SendGrid Mail Send API](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send), [Firebase callable functions](https://firebase.google.com/docs/functions/callable).
 
+
+## Interactive tables
+
+Activity history (`/profile`) and the user accounts, role permissions and project overview tables (`/admin`, Administrator access) support global search, individual column searches, ascending/descending sorting and fixed pagination of 10 rows. Column searches combine with each other and the global search. Searching and sorting return to page one. Action controls and the embedded community rating widget are not searchable data columns. On small screens the tables scroll horizontally while retaining the same controls.
+
+Run `npm run test:tables` for search, date/number sorting and pagination checks. To demonstrate pagination, use more than 10 records; existing short datasets correctly show a single page. In browser checks, a temporary 23-row fixture verified independent table state, next-page navigation, combined column searches and reverse numeric sorting. No fixture records are stored in the application or Firebase.

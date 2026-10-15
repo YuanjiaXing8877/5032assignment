@@ -32,6 +32,20 @@ test('sends the SendGrid request and reports only accepted responses as success'
     return { status: 202 }
   })
   assert.deepEqual(result, { accepted: true })
-  await assert.rejects(deliverMail(payload, 'test-key', async () => ({ status: 401 })))
+  await assert.rejects(deliverMail(payload, 'test-key', async () => ({ status: 401, text: async () => '' })), { code: 'failed-precondition', reason: 'invalid-api-key' })
   await assert.rejects(deliverMail(payload, 'test-key', async () => { throw new Error('Network failure') }))
+})
+
+test('distinguishes sender verification, account permissions and sending limits', async () => {
+  const payload = buildMail(input(), 'sender@example.com')
+  for (const [status, detail, reason, code] of [
+    [403, 'The from address does not match a verified Sender Identity.', 'sender-unverified', 'failed-precondition'],
+    [403, 'Access forbidden', 'sending-not-authorised', 'failed-precondition'],
+    [429, 'Too many requests', 'provider-limit', 'resource-exhausted'],
+    [400, 'Maximum credits exceeded', 'provider-limit', 'resource-exhausted'],
+    [400, 'Invalid attachment', 'provider-validation', 'invalid-argument'],
+    [500, 'Internal error', 'provider-unavailable', 'unavailable']
+  ]) {
+    await assert.rejects(deliverMail(payload, 'test-key', async () => ({ status, text: async () => detail })), { reason, code, providerStatus: status })
+  }
 })
