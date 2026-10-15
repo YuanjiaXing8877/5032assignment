@@ -4,6 +4,12 @@ This Vue application contains registration, login, user accounts and role-protec
 
 ## Run locally
 
+Public deployment: [GreenLink Melbourne](https://projectgreenlink-b2380.web.app).
+
+To publish updates, run `firebase deploy --only hosting --project projectgreenlink-b2380`. Hosting builds the app before uploading `dist`, serves it over HTTPS, and rewrites client-side routes to `index.html`. HTML is revalidated on each visit; hashed assets use long-lived caching. Only the compiled frontend is published; backend secrets and environment files are excluded.
+
+Deployment checks confirmed that the public login page renders, protected routes redirect signed-out visitors to login, and `/profile`, `/email`, `/admin`, `/register` and the main script return HTTP 200. Table and backend unit tests pass. Authenticated workflows still require testing with an existing member account. SendGrid accepted messages can still be rejected by recipient servers until the sender domain authentication issue described during setup is resolved.
+
 ```bash
 npm install
 npm run dev
