@@ -1,7 +1,7 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
-import { getFunctions } from 'firebase/functions'
+import { connectAuthEmulator, getAuth } from 'firebase/auth'
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore'
+import { connectFunctionsEmulator, getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,3 +26,9 @@ const app = firebaseConfigured
 export const firebaseAuth = app ? getAuth(app) : null
 export const firestore = app ? getFirestore(app) : null
 export const emailFunctions = app ? getFunctions(app, 'australia-southeast2') : null
+
+if (app && import.meta.env.DEV && import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
+  connectAuthEmulator(firebaseAuth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  connectFirestoreEmulator(firestore, '127.0.0.1', 8080)
+  connectFunctionsEmulator(emailFunctions, '127.0.0.1', 5001)
+}

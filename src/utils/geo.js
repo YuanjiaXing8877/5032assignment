@@ -12,7 +12,7 @@ export function nearbyActivities(activities, origin, radius, query = '') {
     .filter((activity) => activity.location && `${activity.activity} ${activity.suburb}`.toLowerCase().includes(search))
     .map((activity) => ({ ...activity, distance: origin ? distanceKm(origin, activity.location) : null }))
     .filter((activity) => !origin || !radius || activity.distance <= radius)
-    .sort((a, b) => origin ? a.distance - b.distance : a.id - b.id)
+    .sort((a, b) => origin ? a.distance - b.distance : String(a.id).localeCompare(String(b.id), 'en', { numeric: true }))
 }
 
 export function routeRequest(origin, destination, mode) {

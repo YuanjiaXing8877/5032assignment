@@ -4,7 +4,7 @@ import ActivityRating from './ActivityRating.vue'
 import InteractiveTable from './InteractiveTable.vue'
 defineProps({ activities: { type: Array, required: true } })
 const columns = [
-  { key: 'date', label: 'Date', sortValue: (row) => Date.parse(row.date) || 0 },
+  { key: 'date', label: 'Date', sortValue: (row) => row.startAt || Date.parse(row.date) || 0 },
   { key: 'activity', label: 'Activity' },
   { key: 'suburb', label: 'Suburb' },
   { key: 'status', label: 'Status' },

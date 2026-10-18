@@ -17,7 +17,11 @@
       ] }
     ]
   },
-  "functions": [{ "source": "functions", "codebase": "email" }],
+  "functions": [{
+    "source": "functions",
+    "codebase": "email",
+    "ignore": ["node_modules", ".git", "**/*.test.js", "test-support/**", ".secret.local", "*-debug.log"]
+  }],
   "firestore": {
     "rules": "firestore.rules"
   }

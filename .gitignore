@@ -6,3 +6,5 @@ dist/
 .env.*.local
 firebase-debug*.log
 .firebase/
+functions/.secret.local
+*-debug.log

@@ -6,6 +6,7 @@
   "scripts": {
     "test:geo": "node --test tests/geo.test.js",
     "test:tables": "node --test tests/table.test.js",
+    "test:activities:integration": "firebase emulators:exec --config firebase.emulators.json --project demo-greenlink --only auth,firestore,functions 'node functions/test-support/activities-integration.mjs'",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"

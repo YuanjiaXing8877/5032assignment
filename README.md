@@ -1,14 +1,14 @@
 # GreenLink Melbourne - Authentication and role-based access
 
-This Vue application contains registration, login, user accounts and role-protected pages based on the GreenLink Melbourne proposal.
+This Vue application contains registration, login, volunteer bookings, coordinator activity management and role-protected pages based on the GreenLink Melbourne proposal.
 
 ## Run locally
 
 Public deployment: [GreenLink Melbourne](https://projectgreenlink-b2380.web.app).
 
-To publish updates, run `firebase deploy --only hosting --project projectgreenlink-b2380`. Hosting builds the app before uploading `dist`, serves it over HTTPS, and rewrites client-side routes to `index.html`. HTML is revalidated on each visit; hashed assets use long-lived caching. Only the compiled frontend is published; backend secrets and environment files are excluded.
+To publish activity backend or permission changes, first run `firebase deploy --only functions:email:manageActivity,firestore:rules --project projectgreenlink-b2380`. Then run `firebase deploy --only hosting --project projectgreenlink-b2380`. Hosting builds the app before uploading `dist`, serves it over HTTPS, and rewrites client-side routes to `index.html`. HTML is revalidated on each visit; hashed assets use long-lived caching. Backend secrets and environment files are excluded from Hosting.
 
-Deployment checks confirmed that the public login page renders, protected routes redirect signed-out visitors to login, and `/profile`, `/email`, `/admin`, `/register` and the main script return HTTP 200. Table and backend unit tests pass. Authenticated workflows still require testing with an existing member account. SendGrid accepted messages can still be rejected by recipient servers until the sender domain authentication issue described during setup is resolved.
+Deployment checks confirmed that the public login page renders, protected routes redirect signed-out visitors to login, and client-side routes return HTTP 200. Authenticated coordinator application, approval, publishing and booking workflows were also checked in the local Firebase emulators. Public authenticated workflows require a real member account. SendGrid accepted messages can still be rejected by recipient servers until the sender domain authentication issue described during setup is resolved.
 
 ```bash
 npm install
@@ -21,7 +21,20 @@ The application is connected to the `projectgreenlink-b2380` Firebase project. L
 
 In Firebase Console, enable **Authentication → Sign-in method → Email/Password** before registering users. Firestore is configured in the Melbourne region and its role rules are stored in `firestore.rules`.
 
-New users can register as a Volunteer or apply for Coordinator access. Coordinator applications retain the Volunteer role with a `Pending` status until an Administrator approves them. To create the first Administrator, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. After that, roles can be managed from the Administrator dashboard. This prevents public users from granting themselves staff privileges.
+New users can register as a Volunteer or apply for Coordinator access. Existing volunteers can also apply from **My account → Become a coordinator**. Applications retain the Volunteer role with a `Pending` status until an Administrator approves them. To create the first Administrator, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. After that, roles can be managed from the Administrator dashboard. This prevents public users from granting themselves staff privileges.
+
+## Coordinator applications and activities
+
+1. A Volunteer opens **My account** (`/profile`) and clicks **Apply to be a coordinator**. The application shows as pending while Volunteer access remains available.
+2. An Administrator opens **Administration → Manage user roles**, refreshes the user list and chooses **Approve** or **Decline**. A declined applicant can apply again.
+3. The member's existing account page updates live to display **Coordinator** and **Manage your activities**. Coordinator tools are embedded in the same account page; browsing, booking and activity history remain available.
+4. The Coordinator creates an activity with its title, description, start/end in Melbourne time, capacity, suburb and a Google-searched meeting address. Published activities become available immediately in the activity list and map. The map and history use Firestore activities and bookings rather than demonstration records. A new deployment starts with an empty list until a coordinator publishes an activity.
+5. Coordinators can edit or cancel their own future activities and view their participants. An Administrator can manage all activities. Participants can book or withdraw before the start, subject to capacity. Cancelled activities stay visible in their history.
+6. Once an activity starts, its Coordinator can record attendance. Completed, attended activities contribute volunteer hours and allow ratings. A booking alone does not qualify for a completion rating.
+
+Activity mutations use the `manageActivity` callable function in `australia-southeast2`. Each transaction rechecks the caller's stored role, ownership, activity time and capacity. Concurrent last-place requests cannot overbook; repeated bookings are idempotent. Version checks protect edits from overwriting intervening changes. Firestore rules deny direct client writes to activities and bookings, and limit participant lists to the member, responsible Coordinator and Administrators. Personal booking mirrors are visible only to their owner.
+
+`npm --prefix functions test` runs activity validation/time-zone and email unit tests. `npm run test:activities:integration` starts the isolated `demo-greenlink` emulators and checks approval permissions, ownership, concurrent bookings, roster privacy, attendance, verified ratings, cancellation and role revocation. It requires Java and the Firebase CLI. To avoid attempting to read a real email secret locally, create ignored `functions/.secret.local` with a dummy `SENDGRID_API_KEY=local-test-only-not-a-real-key` before running the emulators. No production records are used. The optional `functions/test-support/seed-ui.mjs` fixture also refuses to run without local emulator hosts.
 
 ## BR C.1 Authentication
 
@@ -44,7 +57,7 @@ New users can register as a Volunteer or apply for Coordinator access. Coordinat
 
 ## BR C.3 Rating
 
-- Completed activities provide an accessible 1–5 star rating control
+- Completed activities with recorded attendance provide an accessible 1–5 star rating control
 - Each user has one Firestore rating document per activity and can update it
 - All signed-in users see a live aggregate average and rating count
 - Submission, loading and error feedback are shown next to the rating control
@@ -70,7 +83,7 @@ New users can register as a Volunteer or apply for Coordinator access. Coordinat
 - Two-way form binding using v-model
 - Show and hide password interaction
 - Editable personal information with field-level validation
-- Personal information table and sortable PrimeVue DataTable activity history
+- Personal information table and searchable, sortable, paginated activity history
 - Summary values computed from the activity data
 - Responsive layouts for phone, tablet, desktop and wide screens using Bootstrap breakpoints
 
@@ -106,7 +119,7 @@ Run `npm run test:tables` for search, date/number sorting and pagination checks.
 
 Signed-in members can open **Find activities** (`/activities/map`). It includes two location features: Australian address search with nearby activity filtering and distance sorting, and real road/path route planning with walking, cycling and driving options. Google provides the route geometry, distance and estimated duration. Nearby radius distances are calculated locally as straight-line estimates.
 
-Existing activity records contain suburbs rather than confirmed meeting addresses. `src/data/activityLocations.js` therefore supplies explicitly labelled demonstration locations. Replace these with organiser-confirmed meeting coordinates before using the page for real travel. The page does not create bookings.
+Meeting points come from published coordinator activities in Firestore. Coordinators search Google for an Australian address and select its coordinates when publishing. The map includes a link to **My account → Browse activities** for bookings.
 
 ### Google Maps configuration
 
@@ -114,7 +127,7 @@ Existing activity records contain suburbs rather than confirmed meeting addresse
 - Enable Maps JavaScript API, Geocoding API and Routes API. Store a dedicated browser key as `VITE_GOOGLE_MAPS_API_KEY` in ignored `.env.local`. Browser map keys are necessarily visible to browsers; protect them using API and website restrictions rather than treating them as backend secrets. Never reuse the Firebase authentication key.
 - The browser key allows only those three APIs and the two production Hosting domains plus localhost/127.0.0.1 port 5173.
 - During setup the project quota limits for Map loads, v3 geocoding and ComputeRoutes were each set to 100/day and 10/minute. Unused 3D/grounding, v4 geocoding and route matrix quotas were set to zero. These are project-wide limits; review them if another app later shares this project. Free allowances and prices remain subject to Google's terms, billing-account-wide usage and the actual SKU triggered. A budget alert is not a spending cap.
-- Maps load only when this route opens. Geocoding and routing happen only after explicit user actions, with only required route fields requested. Driving requests use traffic-unaware routing.
+- Maps load when the map is opened or a coordinator searches for a meeting address. Geocoding and routing happen only after explicit user actions, with only required route fields requested. Driving requests use traffic-unaware routing.
 - Optional browser location access is requested only after clicking **Use my location**. Users can instead enter an address. Starting addresses/coordinates are sent to Google for the selected action, held only in page state, and not written to Firestore.
 - `npm run test:geo` tests distance calculations, combined filters, nearest-first ordering, route request modes and time formatting. Browser checks verified address search, real walking/cycling/driving routes, radius filtering, empty results, stale route removal and a 390px layout without horizontal overflow. Location permission denial requires a manual browser permission check.
 

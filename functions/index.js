@@ -4,10 +4,13 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { defineSecret, defineString } from 'firebase-functions/params'
 import { error as logError } from 'firebase-functions/logger'
 import { buildMail, deliverMail } from './mail.js'
+import { activityHandler } from './activities.js'
 
 initializeApp()
 const apiKey = defineSecret('SENDGRID_API_KEY')
 const sender = defineString('SENDGRID_FROM_EMAIL')
+
+export const manageActivity = onCall({ region: 'australia-southeast2', timeoutSeconds: 30, maxInstances: 5 }, activityHandler(getFirestore()))
 
 export const sendEmail = onCall({ region: 'australia-southeast2', secrets: [apiKey], timeoutSeconds: 60, memory: '256MiB', maxInstances: 5 }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Please sign in before sending an email.')

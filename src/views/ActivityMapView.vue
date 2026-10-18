@@ -2,8 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
-import { profileData } from '../data/profileData'
-import { activityLocations } from '../data/activityLocations'
+import { RouterLink } from 'vue-router'
+import { activityStatus, useActivities } from '../services/activities'
 import { formatDuration, nearbyActivities, routeRequest } from '../utils/geo'
 import { loadMaps, mapError } from '../services/maps'
 
@@ -20,12 +20,13 @@ const origin = ref(null)
 const originLabel = ref('')
 const radius = ref(10)
 const activitySearch = ref('')
-const selectedId = ref(1)
+const selectedId = ref(null)
 const mode = ref('WALKING')
 const routing = ref(false)
 const routeSummary = ref(null)
 const routeHeading = ref(null)
-const activities = computed(() => profileData.activities.map((activity) => ({ ...activity, location: activityLocations[activity.id] })))
+const { published, error: activityLoadError } = useActivities()
+const activities = computed(() => published.value.map((activity) => ({ ...activity, activity: activity.title, status: activityStatus(activity) })))
 const filtered = computed(() => nearbyActivities(activities.value, origin.value, radius.value, activitySearch.value))
 const selected = computed(() => filtered.value.find((activity) => activity.id === selectedId.value))
 const busy = computed(() => searching.value || locating.value || routing.value)
@@ -197,7 +198,9 @@ onUnmounted(() => {
 <template>
   <main class="admin-page container-xl map-page">
     <section class="welcome-row"><div><p class="eyebrow">Explore your neighbourhood</p><h1>Find activities</h1><p>Find local volunteer activities and plan your journey.</p></div></section>
-    <p class="sample-note">These activities use example locations for demonstration. Confirm the actual meeting point with the organiser before travelling.</p>
+    <p class="sample-note">Meeting points are provided by activity coordinators. Check the activity details before travelling.</p>
+    <Message v-if="activityLoadError" severity="error" :closable="false" role="alert">{{ activityLoadError }}</Message>
+    <RouterLink to="/profile#browse-activities">Browse activities and manage your bookings</RouterLink>
     <Message v-if="error" severity="error" :closable="false" role="alert">{{ error }}</Message>
     <div class="map-layout">
       <section class="map-controls" aria-labelledby="journey-title">

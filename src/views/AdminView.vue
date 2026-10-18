@@ -3,7 +3,8 @@ import { onMounted, reactive, ref } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import InteractiveTable from '../components/InteractiveTable.vue'
-import { authErrorMessage, authState, listUserAccounts, updateUserRole } from '../services/auth'
+import { authErrorMessage, authState, listUserAccounts, reviewCoordinatorRequest, updateUserRole } from '../services/auth'
+import { activityStatus, useActivities } from '../services/activities'
 
 const roleOptions = ['Volunteer', 'Coordinator', 'Administrator']
 const users = ref([])
@@ -19,11 +20,7 @@ const rolePermissions = [
   { role: 'Administrator', account: 'All accounts', events: 'Full access', coordination: 'Full access', administration: 'Users and reports' }
 ]
 
-const projects = [
-  { name: 'Shade Corridor Planting', suburb: 'Sunshine West', coordinator: 'Amina Abdi', status: 'Underway' },
-  { name: 'Kororoit Creek Care Day', suburb: 'Albion', coordinator: 'Amina Abdi', status: 'Planned' },
-  { name: 'Pollinator Garden Working Bee', suburb: 'Footscray', coordinator: 'Jordan Lee', status: 'Completed' }
-]
+const { activities: projects, error: activityLoadError, now } = useActivities()
 
 const userColumns = [
   { key: 'name', label: 'Name' },
@@ -39,8 +36,8 @@ const permissionColumns = [
   { key: 'administration', label: 'Administration' }
 ]
 const projectColumns = [
-  { key: 'name', label: 'Project' }, { key: 'suburb', label: 'Suburb' },
-  { key: 'coordinator', label: 'Coordinator' }, { key: 'status', label: 'Status' }
+  { key: 'title', label: 'Activity' }, { key: 'suburb', label: 'Suburb' },
+  { key: 'coordinatorName', label: 'Coordinator' }, { key: 'status', label: 'Status', value: row => activityStatus(row, now.value) }
 ]
 
 function formatCreatedAt(value) {
@@ -79,6 +76,16 @@ async function saveRole(user) {
   }
 }
 
+async function reviewRequest(user, approved) {
+  savingUserId.value = user.id; userError.value = ''; successMessage.value = ''
+  try {
+    await reviewCoordinatorRequest(user.id, approved)
+    successMessage.value = approved ? `${user.name || user.email} is now a Coordinator.` : 'Application declined.'
+    await loadUsers()
+  } catch (error) { userError.value = authErrorMessage(error) }
+  finally { savingUserId.value = '' }
+}
+
 onMounted(loadUsers)
 </script>
 
@@ -105,7 +112,7 @@ onMounted(loadUsers)
 
       <InteractiveTable v-else :rows="users" :columns="userColumns" label="User accounts">
         <template #name="{ row: user }"><strong>{{ user.name || 'Unnamed member' }}</strong></template>
-        <template #request="{ row: user }"><span class="request-badge" :class="{ pending: user.approvalStatus === 'Pending' }">{{ user.approvalStatus === 'Pending' ? 'Coordinator pending' : user.approvalStatus || 'Not requested' }}</span></template>
+        <template #request="{ row: user }"><span class="request-badge" :class="{ pending: user.approvalStatus === 'Pending' }">{{ user.approvalStatus === 'Pending' ? 'Coordinator pending' : user.approvalStatus || 'Not requested' }}</span><div v-if="user.approvalStatus === 'Pending' && user.id !== authState.user.uid" class="d-flex gap-2 mt-2"><Button type="button" class="primary-button" label="Approve" :disabled="Boolean(savingUserId)" @click="reviewRequest(user, true)" /><Button type="button" class="outline-button" label="Decline" outlined :disabled="Boolean(savingUserId)" @click="reviewRequest(user, false)" /></div></template>
         <template #role="{ row: user }">
           <select v-model="roleDrafts[user.id]" class="form-select role-select" :disabled="user.id === authState.user.uid || savingUserId === user.id" :aria-label="`Role for ${user.name || user.email}`">
             <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
@@ -125,8 +132,9 @@ onMounted(loadUsers)
 
     <section class="admin-section" aria-labelledby="projects-title">
       <div class="section-heading"><div><p class="eyebrow">Operations</p><h2 id="projects-title">Project overview</h2></div></div>
-      <InteractiveTable :rows="projects" :columns="projectColumns" label="Project overview" row-key="name">
-        <template #status="{ row }"><span class="role-badge">{{ row.status }}</span></template>
+      <p v-if="activityLoadError" class="field-error" role="alert">{{ activityLoadError }}</p>
+      <InteractiveTable :rows="projects" :columns="projectColumns" label="Project overview">
+        <template #status="{ row }"><span class="role-badge">{{ activityStatus(row, now) }}</span></template>
       </InteractiveTable>
     </section>
   </main>
