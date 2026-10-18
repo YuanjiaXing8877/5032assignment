@@ -101,3 +101,21 @@ References: [SendGrid Mail Send API](https://www.twilio.com/docs/sendgrid/api-re
 Activity history (`/profile`) and the user accounts, role permissions and project overview tables (`/admin`, Administrator access) support global search, individual column searches, ascending/descending sorting and fixed pagination of 10 rows. Column searches combine with each other and the global search. Searching and sorting return to page one. Action controls and the embedded community rating widget are not searchable data columns. On small screens the tables scroll horizontally while retaining the same controls.
 
 Run `npm run test:tables` for search, date/number sorting and pagination checks. To demonstrate pagination, use more than 10 records; existing short datasets correctly show a single page. In browser checks, a temporary 23-row fixture verified independent table state, next-page navigation, combined column searches and reverse numeric sorting. No fixture records are stored in the application or Firebase.
+
+## Activity map and journey planning
+
+Signed-in members can open **Find activities** (`/activities/map`). It includes two location features: Australian address search with nearby activity filtering and distance sorting, and real road/path route planning with walking, cycling and driving options. Google provides the route geometry, distance and estimated duration. Nearby radius distances are calculated locally as straight-line estimates.
+
+Existing activity records contain suburbs rather than confirmed meeting addresses. `src/data/activityLocations.js` therefore supplies explicitly labelled demonstration locations. Replace these with organiser-confirmed meeting coordinates before using the page for real travel. The page does not create bookings.
+
+### Google Maps configuration
+
+- Use the existing Firebase/Google Cloud project `projectgreenlink-b2380`. Maps billing follows this project's linked Cloud Billing account, regardless of which project owner deploys.
+- Enable Maps JavaScript API, Geocoding API and Routes API. Store a dedicated browser key as `VITE_GOOGLE_MAPS_API_KEY` in ignored `.env.local`. Browser map keys are necessarily visible to browsers; protect them using API and website restrictions rather than treating them as backend secrets. Never reuse the Firebase authentication key.
+- The browser key allows only those three APIs and the two production Hosting domains plus localhost/127.0.0.1 port 5173.
+- During setup the project quota limits for Map loads, v3 geocoding and ComputeRoutes were each set to 100/day and 10/minute. Unused 3D/grounding, v4 geocoding and route matrix quotas were set to zero. These are project-wide limits; review them if another app later shares this project. Free allowances and prices remain subject to Google's terms, billing-account-wide usage and the actual SKU triggered. A budget alert is not a spending cap.
+- Maps load only when this route opens. Geocoding and routing happen only after explicit user actions, with only required route fields requested. Driving requests use traffic-unaware routing.
+- Optional browser location access is requested only after clicking **Use my location**. Users can instead enter an address. Starting addresses/coordinates are sent to Google for the selected action, held only in page state, and not written to Firestore.
+- `npm run test:geo` tests distance calculations, combined filters, nearest-first ordering, route request modes and time formatting. Browser checks verified address search, real walking/cycling/driving routes, radius filtering, empty results, stale route removal and a 390px layout without horizontal overflow. Location permission denial requires a manual browser permission check.
+
+References: [Google Maps JavaScript loader](https://developers.google.com/maps/documentation/javascript/load-maps-js-api), [Routes library](https://developers.google.com/maps/documentation/javascript/routes/start), [Geocoding](https://developers.google.com/maps/documentation/javascript/geocoding).

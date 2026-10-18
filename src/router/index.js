@@ -7,6 +7,7 @@ const router = createRouter({
     { path: '/', name: 'login', component: () => import('../views/LoginView.vue'), meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue'), meta: { guestOnly: true } },
     { path: '/profile', name: 'profile', component: () => import('../views/ProfileView.vue'), meta: { requiresAuth: true } },
+    { path: '/activities/map', name: 'activity-map', component: () => import('../views/ActivityMapView.vue'), meta: { requiresAuth: true } },
     { path: '/email', name: 'email', component: () => import('../views/EmailView.vue'), meta: { requiresAuth: true } },
     { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue'), meta: { requiresAuth: true, roles: ['Administrator'] } },
     { path: '/unauthorised', name: 'unauthorised', component: () => import('../views/UnauthorisedView.vue'), meta: { requiresAuth: true } },

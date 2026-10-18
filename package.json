@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "test:geo": "node --test tests/geo.test.js",
     "test:tables": "node --test tests/table.test.js",
     "dev": "vite",
     "build": "vite build",
