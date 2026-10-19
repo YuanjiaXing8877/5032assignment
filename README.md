@@ -1,166 +1,55 @@
-# GreenLink Melbourne - Authentication and role-based access
+# GreenLink Melbourne
 
-This Vue application contains registration, login, volunteer bookings, coordinator activity management and role-protected pages based on the GreenLink Melbourne proposal.
+A Vue application for finding volunteer activities, booking places and managing participation.
+
+Public website: [GreenLink Melbourne](https://projectgreenlink-b2380.web.app).
 
 ## Run locally
-
-Public deployment: [GreenLink Melbourne](https://projectgreenlink-b2380.web.app).
-
-To publish activity backend or permission changes, first run `firebase deploy --only functions:email:manageActivity,firestore:rules --project projectgreenlink-b2380`. Then run `firebase deploy --only hosting --project projectgreenlink-b2380`. Hosting builds the app before uploading `dist`, serves it over HTTPS, and rewrites client-side routes to `index.html`. HTML is revalidated on each visit; hashed assets use long-lived caching. Backend secrets and environment files are excluded from Hosting.
-
-Deployment checks confirmed that the public login page renders, protected routes redirect signed-out visitors to login, and client-side routes return HTTP 200. Authenticated coordinator application, approval, publishing and booking workflows were also checked in the local Firebase emulators. Public authenticated workflows require a real member account. SendGrid accepted messages can still be rejected by recipient servers until the sender domain authentication issue described during setup is resolved.
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Firebase setup
+Build with `npm run build`; view the production build locally with `npm run preview`.
 
-The application is connected to the `projectgreenlink-b2380` Firebase project. Local Firebase values are stored in the Git-ignored `.env.local`; `.env.example` documents the required variables.
+## Configuration
 
-In Firebase Console, enable **Authentication → Sign-in method → Email/Password** before registering users. Firestore is configured in the Melbourne region and its role rules are stored in `firestore.rules`.
+The Firebase project is `projectgreenlink-b2380`. Local frontend configuration is in the Git-ignored `.env.local` file. Its variables are `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` and `VITE_GOOGLE_MAPS_API_KEY`.
 
-New users can register as a Volunteer or apply for Coordinator access. Existing volunteers can also apply from **My account → Become a coordinator**. Applications retain the Volunteer role with a `Pending` status until an Administrator approves them. To create the first Administrator, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. After that, roles can be managed from the Administrator dashboard. This prevents public users from granting themselves staff privileges.
+The Google Maps browser key needs website and API restrictions for Maps JavaScript, Geocoding and Routes. Maps billing follows the Firebase project's linked Google Cloud billing account.
 
-## Coordinator applications and activities
+The email sender address is configured as `SENDGRID_FROM_EMAIL` in `functions/.env`. `SENDGRID_API_KEY` is stored in Firebase Secret Manager. The sender must be verified in SendGrid. An accepted email can still be rejected by the receiving mail server; check SendGrid activity for delivery status.
 
-1. A Volunteer opens **My account** (`/profile`) and clicks **Apply to be a coordinator**. The application shows as pending while Volunteer access remains available.
-2. An Administrator opens **Administration → Manage user roles**, refreshes the user list and chooses **Approve** or **Decline**. A declined applicant can apply again.
-3. The member's existing account page updates live to display **Coordinator** and **Manage your activities**. Coordinator tools are embedded in the same account page; browsing, booking and activity history remain available.
-4. The Coordinator creates an activity with its title, description, start/end in Melbourne time, capacity, suburb and a Google-searched meeting address. Published activities become available immediately in the activity list and map. The map and history use Firestore activities and bookings. Six starter sample sessions also use this same backend and booking workflow.
-5. Coordinators can edit or cancel their own future activities and view their participants. An Administrator can manage all activities. Participants can book or withdraw before the start, subject to capacity. Cancelled activities stay visible in their history.
-6. Once an activity starts, its Coordinator can record attendance. Completed, attended activities contribute volunteer hours and allow ratings. A booking alone does not qualify for a completion rating.
+## Features
 
-Activity mutations use the `manageActivity` callable function in `australia-southeast2`. Each transaction rechecks the caller's stored role, ownership, activity time and capacity. Concurrent last-place requests cannot overbook; repeated bookings are idempotent. Version checks protect edits from overwriting intervening changes. Firestore rules deny direct client writes to activities and bookings, and limit participant lists to the member, responsible Coordinator and Administrators. Personal booking mirrors are visible only to their owner.
+- Firebase email/password authentication and protected Volunteer, Coordinator and Administrator roles.
+- Coordinator applications, administrator approval and activity publishing/management.
+- Real Firestore activities, bookings, attendance and completed volunteer hours.
+- Activity calendar, booking capacity limits and server-side protection against overlapping bookings.
+- Community ratings for completed activities with recorded attendance.
+- Google Maps address search, nearby activity filtering and journey planning.
+- Attachment emails through SendGrid, with server-side validation and sending limits.
+- Interactive tables with sorting, global/column search and ten records per page.
+- CSV and PDF exports of all matching activity/history rows, including Chinese text and multi-page PDF reports.
+- Keyboard navigation, visible focus, form error associations, responsive layouts and text alternatives.
 
-### Activity calendar and booking constraints
+Published activities are stored in Firestore and managed by Coordinators or Administrators. The website reads them from the database.
 
-**My account → Browse activities → Activity calendar** shows a Monday-first month with activity counts, today's date, selected-day activities and check marks for the member's bookings. Previous/next month, Today and **Show my bookings only** controls use the same live activity and booking data as the table and history. A selected day lists full start/end times, meeting addresses, availability and booking/cancellation controls. Dates and times always use Australia/Melbourne, including daylight saving and sessions spanning midnight. Keyboard users have one date tab stop: arrows move by day/week, Home/End move within the week, Page Up/Down change month and Shift+Page Up/Down change year.
+## Deployment
 
-Overlapping bookings for the same member are rejected. Intervals are start-inclusive/end-exclusive, so a session ending at 11:00 permits another beginning at 11:00; travel time is not added. Withdrawn bookings, cancelled activities and completed sessions do not reserve future time. Full, cancelled or started activities cannot receive new bookings. The page explains blocked actions in both the calendar and table. These checks are also enforced inside the server transaction, so calling the API directly does not bypass them.
+Publish the backend and Firestore access rules when they change:
 
-A private `bookingLocks/{uid}` document serialises simultaneous bookings for different activities by the same member; default-deny Firestore rules keep clients from reading or writing it. The transaction reads the member's booked mirrors and authoritative activity schedules, including legacy mirrors without time fields. New mirrors include start/end fields so finished entries can be skipped. Existing bookings are not cancelled or rewritten during rollout. Schedules with current participants are locked against coordinator rescheduling, while other edits remain available. Cancelling the activity or withdrawing its bookings releases the time. A future, published activity can be rescheduled once no participants remain; cancelled activities remain cancelled.
+```bash
+firebase deploy --only functions:email,firestore:rules --project projectgreenlink-b2380
+```
 
-`npm run test:calendar` covers Melbourne/DST date handling, midnight boundaries, leap years, keyboard navigation and frontend/backend overlap parity. The activity integration script includes concurrent overlap attempts, unchanged capacity on rejection, adjacent slots, per-user isolation, protected lock documents, schedule-edit restrictions, cancellation/withdrawal and legacy compatibility. Local UI fixtures can be created with `node functions/test-support/seed-ui.mjs --activities --accessibility --calendar` under the required emulator host variables. The four calendar fixtures are for local testing only.
+Publish the website:
 
-`npm --prefix functions test` runs activity validation/time-zone and email unit tests. `npm run test:activities:integration` starts the isolated `demo-greenlink` emulators and checks approval permissions, ownership, concurrent bookings, roster privacy, attendance, verified ratings, cancellation and role revocation. It requires Java and the Firebase CLI. To avoid attempting to read a real email secret locally, create ignored `functions/.secret.local` with a dummy `SENDGRID_API_KEY=local-test-only-not-a-real-key` before running the emulators. No production records are used. The optional `functions/test-support/seed-ui.mjs` fixture also refuses to run without local emulator hosts.
+```bash
+firebase deploy --only hosting --project projectgreenlink-b2380
+```
 
-### Starter activities
+Hosting runs the production build, serves `dist` over HTTPS and supports client-side routes. Cloud Functions use Node.js 22 in `australia-southeast2`.
 
-`scripts/sampleActivities.js` defines six upcoming sample sessions with real Firestore activity documents, available places and meeting coordinates. The descriptions identify them as sample sessions and ask members to confirm arrangements with the coordinator before attending. Meeting points use council listings for [Buckingham Reserve](https://directory.brimbank.vic.gov.au/buckingham-reserve/), [Footscray Park](https://www.maribyrnong.vic.gov.au/Park/Footscray-Park) and [Yarraville Gardens](https://www.maribyrnong.vic.gov.au/Park/Yarraville-Gardens-Precinct).
-
-An authorised project maintainer can preview `npm run seed:activities -- --project PROJECT --coordinator EXISTING_COORDINATOR_UID`; add `--apply` to create the missing activities. This maintenance script uses the existing global Firebase CLI login. It verifies that the selected member is a Coordinator or Administrator, validates all activities with the backend validator and uses atomic create-only writes with stable IDs. It never overwrites existing activities, shifts their dates, resets bookings, invents attendance or modifies ratings. Re-running it keeps existing records. Preview dates for new entries start at least five days ahead in Melbourne time. Use `npm run test:samples` to verify the starter dataset.
-
-All published sessions appear in **My account → Browse activities**, including read-only community ratings. Booking a place adds a real record to **Activity history**; ratings become editable only after recorded attendance and completion. The map reads the same activity collection. Local UI checks can seed the same six sessions using `node functions/test-support/seed-ui.mjs --activities` with both emulator host variables set.
-
-## BR C.1 Authentication
-
-- Register and log in with validated email/password fields
-- Passwords handled by Firebase Authentication and never stored by this application
-- Firebase session persistence ends when the browser session closes
-- Duplicate-account and invalid-credential errors
-- Log out action and protected personal account route
-
-## BR C.2 Role-based authentication
-
-- Three proposal-aligned roles: Volunteer, Coordinator and Administrator
-- Route metadata defines required authentication and allowed roles
-- A global navigation guard redirects unauthenticated users to login
-- `/admin` is restricted to Administrator accounts
-- Authenticated users without the required role see an access-denied page
-- Navigation only displays the Administration link to administrators
-- Administrators can review all Firebase user profiles and approve or change roles
-- Administrators cannot change their own role from the dashboard
-
-## BR C.3 Rating
-
-- Completed activities with recorded attendance provide an accessible 1–5 star rating control
-- Each user has one Firestore rating document per activity and can update it
-- All signed-in users see a live aggregate average and rating count
-- Submission, loading and error feedback are shown next to the rating control
-- Firestore rules validate ownership, document shape and the 1–5 score range
-
-## BR C.4 Security
-
-- Firebase Authentication handles passwords outside the application
-- Firestore rules enforce ownership, valid roles, approval states and rating ranges
-- A shared sanitisation utility normalises text, removes control characters and angle brackets, collapses abnormal whitespace and applies length limits
-- Registration, login, profile and rating write paths sanitise relevant text before validation or storage
-- Passwords are validated exactly as entered and are never silently modified
-- Vue interpolation is used for user content; the application does not use `v-html`
-
-## Other included features
-
-- Vue Router navigation between login and profile views
-- PrimeVue components with the Aura theme and PrimeIcons
-- Bootstrap 5 grid, navbar, spacing, display and responsive table utilities
-- Built-in HTML validation using required, email, minlength, maxlength and pattern
-- Custom JavaScript validation with field-level feedback
-- Vue events using @submit.prevent, @blur, @input and @click
-- Two-way form binding using v-model
-- Show and hide password interaction
-- Editable personal information with field-level validation
-- Personal information table and searchable, sortable, paginated activity history
-- Summary values computed from the activity data
-- Responsive layouts for phone, tablet, desktop and wide screens using Bootstrap breakpoints
-
-## Security note
-
-Vue Router guards control page navigation, while Firestore Security Rules protect role data independently of the interface. Public registration can only create a Volunteer profile, members cannot change their own role, and Administrator accounts can manage user documents. For a larger production system, privileged roles should additionally be issued as Firebase custom claims from a trusted server environment.
-## Accessibility
-
-The interface uses navy controls, white cards, a pale-green page background and a warm-grey header, with keyboard-visible focus, skip navigation, descriptive route titles, linked form errors, focus management, keyboard-operated ratings and text alternatives alongside the map. See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification scope, repeatable checks and remaining manual screen-reader review. Run `npm run test:accessibility` for palette and keyboard-behaviour checks. Development audit controls (`?audit=1`) and axe-core are excluded from production output.
-
-## Attachment emails
-
-Signed-in members can open **Send email** to send a message with one to five attachments (5 MB combined). The server uses SendGrid and the member's authenticated email as Reply-To. Each account is limited to one attempt per minute and 20 attempts per UTC day, including failed attempts. Attachment data is forwarded to SendGrid without being stored in Firestore. A successful response means SendGrid accepted the email, rather than confirming inbox delivery.
-
-Setup:
-
-1. Enable Firebase's Blaze plan for Cloud Functions and ensure Firestore is available.
-2. In SendGrid, verify a sender address and create an API key with Mail Send permission.
-3. Run `npm --prefix functions install`.
-4. Copy `functions/.env.example` to `functions/.env` and set `SENDGRID_FROM_EMAIL` to the verified sender address.
-5. Run `firebase functions:secrets:set SENDGRID_API_KEY` and enter the key at the prompt. Keep it out of frontend environment variables.
-6. Run `firebase deploy --only functions:email:sendEmail --project projectgreenlink-b2380` for the project's Firebase project. The function and client both use `australia-southeast2`.
-7. Start the app with `npm run dev`, sign in, open **Send email**, and send a small attachment to an inbox you control. Check the received attachment and Reply-To address.
-
-Run `npm --prefix functions test` to verify attachment validation and mocked provider responses. Real delivery requires the configuration and deployment above.
-
-References: [SendGrid Mail Send API](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send), [Firebase callable functions](https://firebase.google.com/docs/functions/callable).
-
-
-## Interactive tables
-
-Activity history (`/profile`) and the user accounts, role permissions and project overview tables (`/admin`, Administrator access) support global search, individual column searches, ascending/descending sorting and fixed pagination of 10 rows. Column searches combine with each other and the global search. Searching and sorting return to page one. Action controls and the embedded community rating widget are not searchable data columns. On small screens the tables scroll horizontally while retaining the same controls.
-
-Run `npm run test:tables` for search, date/number sorting and pagination checks. To demonstrate pagination, use more than 10 records; existing short datasets correctly show a single page. In browser checks, a temporary 23-row fixture verified independent table state, next-page navigation, combined column searches and reverse numeric sorting. No fixture records are stored in the application or Firebase.
-
-## Data export
-
-**My account → Browse activities** and **Activity history** offer **Export CSV** and **Export PDF**. Each download contains all currently matching records across every page, in the selected sort order. Clear the search to export all records available in that table. The available-activity export includes the activity name, Melbourne start time, meeting point, suburb, available places and status; history includes date, activity, suburb, participation status and completed hours. Interactive rating and booking controls are omitted. Exports use an immediate snapshot so live updates cannot change a file while it is being prepared.
-
-CSV files use UTF-8 with BOM for Excel, quoted fields, escaped quotes and CRLF record separators. Formula-like text is prefixed with an apostrophe to prevent spreadsheet execution; numeric values stay numeric. PDFs contain selectable text, a title, Melbourne export time, record count, repeating table headings and numbered pages. The locally hosted OFL-licensed font supports Latin and Chinese text. PDF libraries and font are loaded only when PDF export is requested; files are generated in the browser using data already readable by the signed-in member. No export service, extra Firestore query, backend permission change or server-side file storage is required. Empty results disable the export buttons; progress, download-start and failure messages are announced. Temporary download URLs are released after the browser has time to start downloading. The PDFs are not claimed to be tagged, PDF/UA-conformant documents.
-
-Run `npm run test:exports` for cross-page filtering/sorting, field selection, CSV escaping/formula safety, Melbourne filenames and bilingual PDF font/pagination checks. Optional local UI fixtures use `node functions/test-support/seed-ui.mjs --activities --accessibility --exports` with the required emulator host variables; the script refuses production access. The committed PDF font can be rebuilt with the optional `scripts/prepare-export-font.py` maintenance utility; see `src/assets/fonts/README.md` and `OFL.txt` for provenance and licensing.
-
-Local browser verification exported 34 available activities and 28 participation records, and exported all 15 matching records while viewing page two of a descending, suburb-filtered table. Downloaded CSV files were parsed to check their rows and Unicode/quoted multiline fields; both two-page PDFs were checked for Chinese text, final records, repeated headings and page numbering. The available-activity PDF was rendered and visually reviewed. Keyboard CSV activation and empty-result disabled controls were also checked. These are disposable local fixture counts, not production records.
-
-## Activity map and journey planning
-
-Signed-in members can open **Find activities** (`/activities/map`). It includes two location features: Australian address search with nearby activity filtering and distance sorting, and real road/path route planning with walking, cycling and driving options. Google provides the route geometry, distance and estimated duration. Nearby radius distances are calculated locally as straight-line estimates.
-
-Meeting points come from published coordinator activities in Firestore. Coordinators search Google for an Australian address and select its coordinates when publishing. The map includes a link to **My account → Browse activities** for bookings.
-
-### Google Maps configuration
-
-- Use the existing Firebase/Google Cloud project `projectgreenlink-b2380`. Maps billing follows this project's linked Cloud Billing account, regardless of which project owner deploys.
-- Enable Maps JavaScript API, Geocoding API and Routes API. Store a dedicated browser key as `VITE_GOOGLE_MAPS_API_KEY` in ignored `.env.local`. Browser map keys are necessarily visible to browsers; protect them using API and website restrictions rather than treating them as backend secrets. Never reuse the Firebase authentication key.
-- The browser key allows only those three APIs and the two production Hosting domains plus localhost/127.0.0.1 port 5173.
-- During setup the project quota limits for Map loads, v3 geocoding and ComputeRoutes were each set to 100/day and 10/minute. Unused 3D/grounding, v4 geocoding and route matrix quotas were set to zero. These are project-wide limits; review them if another app later shares this project. Free allowances and prices remain subject to Google's terms, billing-account-wide usage and the actual SKU triggered. A budget alert is not a spending cap.
-- Maps load when the map is opened or a coordinator searches for a meeting address. Geocoding and routing happen only after explicit user actions, with only required route fields requested. Driving requests use traffic-unaware routing.
-- Optional browser location access is requested only after clicking **Use my location**. Users can instead enter an address. Starting addresses/coordinates are sent to Google for the selected action, held only in page state, and not written to Firestore.
-- `npm run test:geo` tests distance calculations, combined filters, nearest-first ordering, route request modes and time formatting. Browser checks verified address search, real walking/cycling/driving routes, radius filtering, empty results, stale route removal and a 390px layout without horizontal overflow. Location permission denial requires a manual browser permission check.
-
-References: [Google Maps JavaScript loader](https://developers.google.com/maps/documentation/javascript/load-maps-js-api), [Routes library](https://developers.google.com/maps/documentation/javascript/routes/start), [Geocoding](https://developers.google.com/maps/documentation/javascript/geocoding).
+The PDF font is included in `src/assets/fonts/GreenLinkSans-Regular.ttf`; its required license is retained in `src/assets/fonts/OFL.txt`.
