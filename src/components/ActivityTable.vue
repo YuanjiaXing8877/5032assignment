@@ -9,7 +9,7 @@ const columns = [
   { key: 'suburb', label: 'Suburb' },
   { key: 'status', label: 'Status' },
   { key: 'hours', label: 'Hours' },
-  { key: 'rating', label: 'Community rating', sortable: false, searchable: false }
+  { key: 'rating', label: 'Community rating', sortable: false, searchable: false, exportable: false }
 ]
 function statusSeverity(status) {
   if (status === 'Confirmed') return 'success'
@@ -18,7 +18,7 @@ function statusSeverity(status) {
 }
 </script>
 <template>
-  <InteractiveTable :rows="activities" :columns="columns" label="Activity history">
+  <InteractiveTable :rows="activities" :columns="columns" label="Activity history" exportable>
     <template #activity="{ row }"><strong>{{ row.activity }}</strong></template>
     <template #status="{ row }"><Tag :value="row.status" :severity="statusSeverity(row.status)" /></template>
     <template #rating="{ row }"><ActivityRating :activity="row" :read-only="row.status !== 'Completed'" /><small v-if="row.status !== 'Completed'" class="rating-unavailable">Rate after attendance and completion</small></template>

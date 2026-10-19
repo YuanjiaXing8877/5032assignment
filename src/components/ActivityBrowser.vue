@@ -22,8 +22,8 @@ const columns = [
   { key: 'address', label: 'Meeting point' }, { key: 'suburb', label: 'Suburb' },
   { key: 'availability', label: 'Places', value: row => `${row.capacity - row.bookedCount} available / ${row.capacity}` },
   { key: 'status', label: 'Status', value: row => activityStatus(row, props.now) },
-  { key: 'rating', label: 'Community rating', sortable: false, searchable: false },
-  { key: 'action', label: 'Booking', sortable: false, searchable: false }
+  { key: 'rating', label: 'Community rating', sortable: false, searchable: false, exportable: false },
+  { key: 'action', label: 'Booking', sortable: false, searchable: false, exportable: false }
 ]
 async function booking(action, id) {
   actionFocus = { id, status: action === 'book' ? 'Booked' : 'Cancelled' }
@@ -38,7 +38,7 @@ async function booking(action, id) {
     <div class="section-heading"><div><p class="eyebrow">Volunteer opportunities</p><h2 id="browse-title">Browse activities</h2></div></div>
     <p>Choose an activity and book a place. Your booking will appear in Activity history below. Ratings open after attendance and completion.</p>
     <Message v-if="error" id="booking-error" severity="error" :closable="false" role="alert">{{ error }}</Message><Message v-if="message" severity="success" :closable="false" role="status">{{ message }}</Message>
-    <InteractiveTable :rows="activities" :columns="columns" label="Available activities">
+    <InteractiveTable :rows="activities" :columns="columns" label="Available activities" exportable>
       <template #title="{ row }"><strong>{{ row.title }}</strong><details class="activity-details"><summary>Details</summary><small class="activity-description">{{ row.description }}</small></details></template>
       <template #rating="{ row }"><ActivityRating :activity="{ ...row, activity: row.title }" read-only /></template>
       <template #action="{ row }">
@@ -53,4 +53,5 @@ async function booking(action, id) {
 .activity-details { margin-top: 6px; min-width: 155px; max-width: 280px; }
 .activity-details summary { cursor: pointer; color: var(--accent); font-size: 12px; }
 .activity-description { display: block; white-space: pre-wrap; margin-top: 6px; color: var(--muted); }
+:deep(td .p-button) { white-space: nowrap; }
 </style>

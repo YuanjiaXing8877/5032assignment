@@ -28,4 +28,13 @@ if (accessibility) {
  await getFirestore().doc(`users/workflow-member/bookings/${id}`).set({activityId:id,status:'Booked',attended:true})
  console.log('Local completed attendance fixture ready for keyboard rating checks')
 }
+if (process.argv.includes('--exports')) {
+ const {id:unused,...activity}=buildSampleActivities()[0]
+ for(let index=0;index<27;index++) {
+  const id=`export-check-${index+1}`
+  await getFirestore().doc(`activities/${id}`).create({...activity,title:index===0?'河岸植树活动 - Export check':`Export planting ${String(index+1).padStart(2,'0')}`,address:index===0?'河岸集合点, "公园入口"\nFootscray Park':activity.address,suburb:index%2?'Footscray':'Albion',coordinatorId:'workflow-admin',coordinatorName:'Casey Administrator',status:'Published',bookedCount:1,version:1,startAt:activity.startAt+index*3600000,endAt:activity.endAt+index*3600000})
+  await getFirestore().doc(`users/workflow-member/bookings/${id}`).set({activityId:id,status:'Booked',attended:false})
+ }
+ console.log('27 local export fixtures ready for multi-page, filtered and bilingual download checks')
+}
 await deleteApp(app)
