@@ -9,6 +9,7 @@
     "test:samples": "node --test tests/sampleActivities.test.js",
     "test:accessibility": "node --test tests/accessibility.test.js",
     "test:exports": "node --test tests/export.test.js tests/exportPdf.test.js",
+    "test:calendar": "node --test tests/calendar.test.js",
     "seed:activities": "node scripts/seed-activities.mjs",
     "test:activities:integration": "firebase emulators:exec --config firebase.emulators.json --project demo-greenlink --only auth,firestore,functions 'node functions/test-support/activities-integration.mjs'",
     "dev": "vite",

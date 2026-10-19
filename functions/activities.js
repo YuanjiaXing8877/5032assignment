@@ -4,6 +4,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 const fail = (message, code = 'failed-precondition') => { throw new HttpsError(code, message) }
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : ''
 const validId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value)
+export const schedulesOverlap = (left, right) => left.startAt < right.endAt && right.startAt < left.endAt
 
 export function validateActivity(data, now = Date.now()) {
   const title = text(data?.title, 120)
@@ -49,6 +50,7 @@ export function activityHandler(db, clock = Date.now) {
         if (event && version !== event.version) fail('This activity changed. Reload it before saving.', 'aborted')
         const clean = validateActivity(data, now)
         if (clean.capacity < (event?.bookedCount || 0)) fail('Capacity cannot be lower than the current bookings.')
+        if (event?.bookedCount > 0 && (clean.startAt !== event.startAt || clean.endAt !== event.endAt)) fail('Start and end times are locked while participants are booked. Cancel this activity and publish a new time, or wait until all bookings are withdrawn.')
         tx.set(activityRef, {
           ...clean, ...changed,
           coordinatorId: event?.coordinatorId || uid,
@@ -86,8 +88,18 @@ export function activityHandler(db, clock = Date.now) {
         if (event.status !== 'Published' || event.startAt <= now) fail('Booking is closed for this activity.')
         if (booking?.status === 'Booked') return { id: activityRef.id }
         if (event.bookedCount >= event.capacity) fail('This activity is full.', 'resource-exhausted')
+        // A private, per-member document serialises bookings for different activities.
+        // It also covers members whose legacy booking mirrors have no schedule fields.
+        const lockRef = db.doc(`bookingLocks/${uid}`)
+        await tx.get(lockRef)
+        const bookings = await tx.get(db.collection(`users/${uid}/bookings`).where('status', '==', 'Booked'))
+        const refs = bookings.docs.filter(item => item.id !== activityRef.id && (!Number.isFinite(item.data().endAt) || item.data().endAt > now)).map(item => db.doc(`activities/${item.id}`))
+        const bookedActivities = refs.length ? await tx.getAll(...refs) : []
+        const conflict = bookedActivities.find(item => item.exists && item.data().status === 'Published' && item.data().endAt > now && schedulesOverlap(event, item.data()))
+        if (conflict) throw new HttpsError('failed-precondition', `This activity overlaps your booking for "${conflict.data().title}". Choose another time or cancel the existing booking first.`, { reason: 'booking-conflict', activityId: conflict.id })
+        tx.set(lockRef, { revision: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() }, { merge: true })
         tx.set(bookingRef, { uid, name: user.name || 'GreenLink member', email: request.auth.token.email || user.email || '', status: 'Booked', attended: false, updatedAt: FieldValue.serverTimestamp() })
-        tx.set(ownRef, { ...eventInfo, status: 'Booked', attended: false, updatedAt: FieldValue.serverTimestamp() })
+        tx.set(ownRef, { ...eventInfo, startAt: event.startAt, endAt: event.endAt, status: 'Booked', attended: false, updatedAt: FieldValue.serverTimestamp() })
         tx.update(activityRef, { ...changed, bookedCount: event.bookedCount + 1 })
       } else {
         if (booking?.status !== 'Booked') return { id: activityRef.id }

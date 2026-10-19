@@ -67,6 +67,46 @@ try {
  await volunteer.call('cancel',{activityId:future})
  assert.equal((await getDoc(doc(second.fs,'activities',future))).data().status,'Cancelled')
  await assert.rejects(second.call('book',{activityId:future}));check('cancellation is visible and closes bookings')
+ const scheduler=await member('schedule-volunteer')
+ const slot={...base,title:'Calendar morning',capacity:5,startAt:Date.now()+2*86400000,endAt:Date.now()+2*86400000+2*3600000}
+ const slotA=(await volunteer.call('save',{data:slot})).id
+ const overlap={...slot,title:'Calendar overlap',startAt:slot.startAt+3600000,endAt:slot.endAt+3600000}
+ const slotB=(await volunteer.call('save',{data:overlap})).id
+ const scheduleRace=await Promise.allSettled([scheduler.call('book',{activityId:slotA}),scheduler.call('book',{activityId:slotB})])
+ assert.equal(scheduleRace.filter(result=>result.status==='fulfilled').length,1)
+ const rejected=scheduleRace.find(result=>result.status==='rejected').reason
+ assert.equal(rejected.code,'functions/failed-precondition')
+ assert.equal(rejected.details.reason,'booking-conflict')
+ const winningId=scheduleRace[0].status==='fulfilled'?slotA:slotB
+ const blockedId=winningId===slotA?slotB:slotA
+ const winningData=(await db.doc(`activities/${winningId}`).get()).data()
+ assert.equal((await db.doc(`activities/${blockedId}`).get()).data().bookedCount,0)
+ check('same member cannot concurrently book two different overlapping activities; rejected booking consumes no place')
+ await scheduler.call('book',{activityId:winningId})
+ assert.equal((await db.doc(`activities/${winningId}`).get()).data().bookedCount,1)
+ check('idempotent repeat booking remains valid with conflict protection')
+ await outsider.call('book',{activityId:blockedId});check('time conflicts are per member and do not block other volunteers')
+ await assert.rejects(setDoc(doc(scheduler.fs,'bookingLocks',scheduler.uid),{revision:0}));check('clients cannot overwrite private schedule serialisation records')
+ const adjacent=(await volunteer.call('save',{data:{...slot,title:'Adjacent calendar slot',startAt:winningData.endAt,endAt:winningData.endAt+3600000}})).id
+ await scheduler.call('book',{activityId:adjacent});check('exact end-to-start adjacent bookings are allowed')
+ await assert.rejects(volunteer.call('save',{activityId:winningId,version:winningData.version,data:{...winningData,startAt:winningData.startAt+60000,endAt:winningData.endAt+60000}}),{code:'functions/failed-precondition'});check('coordinators cannot reschedule an activity with existing participants')
+ await volunteer.call('save',{activityId:winningId,version:winningData.version,data:{...winningData,description:'Updated instructions with the same booked schedule.'}});check('non-schedule edits remain available after booking')
+ const duplicate=(await volunteer.call('save',{data:{...slot,title:'Replacement calendar slot',startAt:winningData.startAt,endAt:winningData.endAt}})).id
+ await assert.rejects(scheduler.call('book',{activityId:duplicate}),{code:'functions/failed-precondition'})
+ await volunteer.call('cancel',{activityId:winningId})
+ await scheduler.call('book',{activityId:duplicate});check('cancelled activities release their time even before the member withdraws')
+ const replacement=(await volunteer.call('save',{data:{...slot,title:'Withdraw and rebook slot',startAt:winningData.startAt,endAt:winningData.endAt}})).id
+ await scheduler.call('withdraw',{activityId:duplicate})
+ await scheduler.call('book',{activityId:replacement});check('withdrawing releases the time for another activity')
+ const legacyData={...slot,title:'Legacy booking calendar check',startAt:slot.startAt+3*86400000,endAt:slot.endAt+3*86400000}
+ const legacyId=(await volunteer.call('save',{data:legacyData})).id
+ await db.doc(`activities/${legacyId}`).update({bookedCount:1})
+ await db.doc(`activities/${legacyId}/registrations/${scheduler.uid}`).set({uid:scheduler.uid,status:'Booked',attended:false})
+ await db.doc(`users/${scheduler.uid}/bookings/${legacyId}`).set({activityId:legacyId,status:'Booked',attended:false})
+ const legacyOverlap=(await volunteer.call('save',{data:{...legacyData,title:'Overlaps legacy booking'}})).id
+ await assert.rejects(scheduler.call('book',{activityId:legacyOverlap}),{code:'functions/failed-precondition'});check('legacy mirrors without start/end timestamps are checked against the real activity')
+ await scheduler.call('withdraw',{activityId:legacyId})
+ await scheduler.call('book',{activityId:legacyOverlap});check('legacy withdrawal correctly releases its schedule')
  await updateDoc(doc(administrator.fs,'users',volunteer.uid),{role:'Volunteer',approvalStatus:'Not requested'})
  await assert.rejects(volunteer.call('save',{data:base}),{code:'functions/permission-denied'});check('role revocation is enforced immediately by the server')
  await signOut(second.auth)

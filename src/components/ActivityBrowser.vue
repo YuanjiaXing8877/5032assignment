@@ -1,9 +1,10 @@
 <script setup>
 import { ref, watch } from 'vue'
-import Button from 'primevue/button'
 import Message from 'primevue/message'
 import InteractiveTable from './InteractiveTable.vue'
 import ActivityRating from './ActivityRating.vue'
+import ActivityCalendar from './ActivityCalendar.vue'
+import BookingControl from './BookingControl.vue'
 import { focusTarget } from '../utils/accessibility'
 import { activityError, activityStatus, changeActivity, formatActivityTime } from '../services/activities'
 const props = defineProps({ activities: { type: Array, required: true }, bookings: { type: Object, required: true }, now: { type: Number, required: true } })
@@ -13,7 +14,7 @@ const message = ref('')
 let actionFocus = null
 watch(() => [props.bookings, busy.value], () => {
   if (actionFocus && !busy.value && props.bookings[actionFocus.id]?.status === actionFocus.status) {
-    focusTarget(`#booking-action-${actionFocus.id}`)
+    focusTarget(`#${actionFocus.returnId}`)
     actionFocus = null
   }
 })
@@ -25,8 +26,9 @@ const columns = [
   { key: 'rating', label: 'Community rating', sortable: false, searchable: false, exportable: false },
   { key: 'action', label: 'Booking', sortable: false, searchable: false, exportable: false }
 ]
-async function booking(action, id) {
-  actionFocus = { id, status: action === 'book' ? 'Booked' : 'Cancelled' }
+async function booking({ action, id, returnId }) {
+  if (busy.value) return
+  actionFocus = { id, returnId, status: action === 'book' ? 'Booked' : 'Cancelled' }
   busy.value = id; error.value = ''; message.value = ''
   try { await changeActivity(action, { activityId: id }); message.value = action === 'book' ? 'Your place is booked.' : 'Your booking has been cancelled.' }
   catch (failure) { actionFocus = null; error.value = activityError(failure); focusTarget('#booking-error') }
@@ -38,13 +40,12 @@ async function booking(action, id) {
     <div class="section-heading"><div><p class="eyebrow">Volunteer opportunities</p><h2 id="browse-title">Browse activities</h2></div></div>
     <p>Choose an activity and book a place. Your booking will appear in Activity history below. Ratings open after attendance and completion.</p>
     <Message v-if="error" id="booking-error" severity="error" :closable="false" role="alert">{{ error }}</Message><Message v-if="message" severity="success" :closable="false" role="status">{{ message }}</Message>
+    <ActivityCalendar :activities="activities" :bookings="bookings" :now="now" :busy="busy" @booking="booking" />
     <InteractiveTable :rows="activities" :columns="columns" label="Available activities" exportable>
       <template #title="{ row }"><strong>{{ row.title }}</strong><details class="activity-details"><summary>Details</summary><small class="activity-description">{{ row.description }}</small></details></template>
       <template #rating="{ row }"><ActivityRating :activity="{ ...row, activity: row.title }" read-only /></template>
       <template #action="{ row }">
-        <Button v-if="bookings[row.id]?.status === 'Booked' && (row.startAt > now || row.status === 'Cancelled')" :id="`booking-action-${row.id}`" type="button" class="outline-button" label="Cancel booking" :aria-label="`Cancel booking for ${row.title}`" outlined :loading="busy === row.id" :disabled="Boolean(busy)" @click="booking('withdraw', row.id)" />
-        <span v-else-if="bookings[row.id]?.status === 'Booked'" :id="`booking-action-${row.id}`" tabindex="-1">{{ bookings[row.id].attended ? 'Attended' : 'Booked' }}</span>
-        <Button v-else :id="`booking-action-${row.id}`" type="button" class="primary-button" label="Book a place" :aria-label="`Book a place for ${row.title}`" :loading="busy === row.id" :disabled="Boolean(busy) || row.status !== 'Published' || row.startAt <= now || row.bookedCount >= row.capacity" @click="booking('book', row.id)" />
+        <BookingControl :activity="row" :activities="activities" :bookings="bookings" :now="now" :busy="busy" @change="booking" />
       </template>
     </InteractiveTable>
   </section>

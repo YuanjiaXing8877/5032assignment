@@ -12,7 +12,7 @@ import { activityTimeInput, parseActivityTime } from '../utils/activityTime'
 import { focusTarget } from '../utils/accessibility'
 
 const props = defineProps({ activities: { type: Array, required: true }, now: { type: Number, required: true } })
-const owned = computed(() => props.activities.filter(event => authState.user.role === 'Administrator' || event.coordinatorId === authState.user.uid))
+const owned = computed(() => authState.user ? props.activities.filter(event => authState.user.role === 'Administrator' || event.coordinatorId === authState.user.uid) : [])
 const editing = ref(false)
 const form = reactive({ id: '', title: '', description: '', suburb: '', address: '', start: '', end: '', capacity: 10, location: null, version: 0 })
 const busy = ref(false)
@@ -26,6 +26,7 @@ const participantEventId = ref('')
 const participants = ref([])
 const loadingParticipants = ref(false)
 const participantEvent = computed(() => owned.value.find(event => event.id === participantEventId.value))
+const timesLocked = computed(() => Boolean(form.id && owned.value.find(event => event.id === form.id)?.bookedCount > 0))
 let stopParticipants = () => {}
 let active = true
 let addressRevision = 0
@@ -86,9 +87,10 @@ async function save() {
   if (!form.location) { error.value = 'Search for and select the meeting address before publishing.'; focusTarget('#activity-address'); return }
   busy.value = true
   try {
+    const lockedSchedule = timesLocked.value ? owned.value.find(event => event.id === form.id) : null
     const response = await changeActivity('save', {
       ...(form.id ? { activityId: form.id, version: form.version } : {}),
-      data: { title: form.title, description: form.description, suburb: form.suburb, address: form.address, capacity: form.capacity, location: form.location, startAt: parseActivityTime(form.start), endAt: parseActivityTime(form.end) }
+      data: { title: form.title, description: form.description, suburb: form.suburb, address: form.address, capacity: form.capacity, location: form.location, startAt: lockedSchedule?.startAt ?? parseActivityTime(form.start), endAt: lockedSchedule?.endAt ?? parseActivityTime(form.end) }
     })
     editing.value = false; message.value = form.id ? 'Activity updated.' : 'Your activity is published and available to volunteers.'
     participantEventId.value = response.id
@@ -122,8 +124,9 @@ async function attendance(participant) {
       <fieldset :disabled="busy"><legend class="sr-only">Activity details</legend><div class="row g-3">
         <div class="col-12"><label for="activity-title-input">Activity title</label><input id="activity-title-input" v-model.trim="form.title" class="form-control" required minlength="3" maxlength="120" /></div>
         <div class="col-12"><label for="activity-description">Description</label><textarea id="activity-description" v-model.trim="form.description" class="form-control" rows="3" required minlength="10" maxlength="3000"></textarea></div>
-        <div class="col-12 col-md-6"><label for="activity-start">Start (Melbourne time)</label><input id="activity-start" v-model="form.start" class="form-control" type="datetime-local" required /></div>
-        <div class="col-12 col-md-6"><label for="activity-end">End (Melbourne time)</label><input id="activity-end" v-model="form.end" class="form-control" type="datetime-local" required /></div>
+        <div class="col-12 col-md-6"><label for="activity-start">Start (Melbourne time)</label><input id="activity-start" v-model="form.start" class="form-control" type="datetime-local" required :disabled="timesLocked" :aria-describedby="timesLocked ? 'activity-time-lock' : undefined" /></div>
+        <div class="col-12 col-md-6"><label for="activity-end">End (Melbourne time)</label><input id="activity-end" v-model="form.end" class="form-control" type="datetime-local" required :disabled="timesLocked" :aria-describedby="timesLocked ? 'activity-time-lock' : undefined" /></div>
+        <p v-if="timesLocked" id="activity-time-lock" class="field-hint col-12">Start and end times are locked while participants are booked. To change the schedule, cancel this activity and publish a new time, or wait until all bookings are withdrawn.</p>
         <div class="col-12 col-md-6"><label for="activity-suburb">Suburb</label><input id="activity-suburb" v-model.trim="form.suburb" class="form-control" required maxlength="80" /></div>
         <div class="col-12 col-md-6"><label for="activity-capacity">Maximum participants</label><input id="activity-capacity" v-model.number="form.capacity" class="form-control" type="number" min="1" max="500" step="1" required /></div>
         <div class="col-12"><label for="activity-address">Meeting address</label><div class="meeting-search"><input id="activity-address" v-model="form.address" class="form-control" required maxlength="250" placeholder="Street address, suburb, Victoria" aria-describedby="activity-address-help" :disabled="searching" /><Button type="button" class="outline-button" label="Find address" outlined :loading="searching" :disabled="searching || !form.address.trim()" @click="searchMeetingPoint" /></div><small id="activity-address-help" class="field-hint">Search and select the exact meeting address. Address searches are sent to Google.</small>

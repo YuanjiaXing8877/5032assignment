@@ -12,6 +12,7 @@ Updated 19 October 2026. The interface uses navy, white cards, a pale-green page
 - The rating editor implements a radio group with one tab stop, arrow-key wrapping, Home/End support and accessible score names. Space/Enter use native button activation. Saving returns focus to the selected score. Filled stars and the selected underline provide visual state cues; accessible names and checked states expose the same information.
 - Decorative icons are hidden from assistive technology. Logos retain their visible accessible name. Ratings also have a numerical/text summary.
 - The map has a parallel list of destinations, meeting-address text, travel-mode controls and route distance/time text. Results can be selected without using map gestures. Search selection and route completion move focus to useful controls or the route summary. An explicit link opens the chosen journey in Google Maps. Periodic activity-status refreshes retain an unchanged route so its summary does not disappear while being read.
+- The activity calendar has one date tab stop, arrow/Home/End/Page Up/Page Down navigation, month controls, full-date accessible names, today's/selected-date states and booking indicators with text alternatives. Selected-day activities are also presented as a text list with keyboard-accessible booking controls. Disabled bookings have visible explanations for conflicts, closed sessions or full capacity. The desktop agenda scroll region can receive keyboard focus; on mobile it flows with the page.
 - Layouts support 320 CSS-pixel reflow, enlarged text and increased text spacing. Reduced-motion preferences suppress optional scrolling and transitions. Forced-colour mode preserves visible focus and selected rating borders.
 
 ## Contrast
@@ -30,7 +31,9 @@ Normal text colours are tested against white, the light blue surface, the page b
 
 ## Verification performed
 
-The JSON evidence in `reports/accessibility/` contains 19 saved page/state checks. All have zero automatically detected violations under the selected WCAG 2.0 A/AA, WCAG 2.1 A/AA and best-practice rule tags. These checks covered login, registration errors, volunteer and coordinator accounts, personal-information editing, the activity editor and participant roster, administration, email, access denial, and the live map/route flow.
+The JSON evidence in `reports/accessibility/` contains 21 saved page/state checks. All have zero automatically detected violations under the selected WCAG 2.0 A/AA, WCAG 2.1 A/AA and best-practice rule tags. These checks covered login, registration errors, volunteer and coordinator accounts, personal-information editing, the activity editor and participant roster, administration, email, access denial, the live map/route flow, and the booked/conflicting calendar state at desktop and 320 CSS-pixel widths.
+
+Calendar checks also verified keyboard day/month selection, the bookings-only filter, a successful adjacent booking, conflict/full disabled controls, cancellation releasing a time slot, persistent history after reload and locked coordinator schedule inputs. The calendar mobile layout did not cause horizontal page overflow. Its visible date/count text remains part of each button's accessible name.
 
 Keyboard checks covered skip navigation, login and registration errors, page-heading focus, profile editor focus/return, rating arrow keys/End/Tab/submission, participant-list focus, administration review, mobile menu Escape handling and choosing a starting address/destination/route without a mouse. A computed route remained available after a 70-second reading interval spanning the activity refresh timer.
 

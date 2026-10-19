@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateActivity } from './activities.js'
+import { schedulesOverlap, validateActivity } from './activities.js'
 import { activityTimeInput, parseActivityTime } from '../src/utils/activityTime.js'
 const now=Date.parse('2026-10-18T00:00:00Z')
 const valid=()=>({title:'Creek cleanup',description:'Help clean our local creek.',suburb:'Footscray',address:'Footscray VIC',startAt:now+3600000,endAt:now+7200000,capacity:5,location:{lat:-37.8,lng:144.9}})
@@ -13,4 +13,9 @@ test('Melbourne datetime conversion handles standard time, daylight saving and i
  for(const epoch of ['2026-07-18T00:30:00Z','2026-12-18T00:30:00Z']) assert.equal(parseActivityTime(activityTimeInput(Date.parse(epoch))),Date.parse(epoch))
  assert.equal(new Date(parseActivityTime('2026-12-18T11:30')).toISOString(),'2026-12-18T00:30:00.000Z')
  assert.throws(()=>parseActivityTime('2026-10-04T02:30'))
+})
+test('schedule overlap includes partial and contained intervals but allows exact back-to-back boundaries',()=>{
+ const event={startAt:100,endAt:200}
+ for(const other of [{startAt:150,endAt:250},{startAt:50,endAt:150},{startAt:120,endAt:180},{startAt:50,endAt:250},{startAt:100,endAt:200}]) assert.equal(schedulesOverlap(event,other),true)
+ for(const other of [{startAt:0,endAt:100},{startAt:200,endAt:300},{startAt:250,endAt:300}]) assert.equal(schedulesOverlap(event,other),false)
 })

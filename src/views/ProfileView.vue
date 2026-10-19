@@ -16,7 +16,7 @@ const route = useRoute()
 const sections = computed(() => [
   { hash: '#overview', label: 'Overview' }, { hash: '#personal', label: 'Personal information' },
   { hash: '#browse-activities', label: 'Browse activities' }, { hash: '#activity', label: 'Activity history' },
-  ...(['Coordinator', 'Administrator'].includes(authState.user.role) ? [{ hash: '#coordinator-tools', label: 'Coordinator tools' }] : [])
+  ...(['Coordinator', 'Administrator'].includes(authState.user?.role) ? [{ hash: '#coordinator-tools', label: 'Coordinator tools' }] : [])
 ])
 const isCurrentSection = hash => route.hash === hash || (!route.hash && hash === '#overview')
 watch(() => authState.user, (user) => {
@@ -35,7 +35,7 @@ function updateUser(updatedUser) {
 </script>
 
 <template>
-  <main id="main-content" tabindex="-1" class="profile-page container-xl">
+  <main v-if="authState.user" id="main-content" tabindex="-1" class="profile-page container-xl">
     <div class="row g-3 g-lg-4">
     <aside class="profile-sidebar-column col-12 col-lg-3" aria-label="Account sections">
       <div class="profile-sidebar">
