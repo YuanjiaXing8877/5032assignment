@@ -14,7 +14,7 @@ const router = createRouter({
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
   scrollBehavior(to) {
-    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    if (to.hash) return { el: to.hash, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }
     return { top: 0 }
   }
 })
@@ -28,5 +28,8 @@ router.beforeEach(async (to) => {
   if (to.meta.roles && !canAccess(to.meta.roles)) return { name: 'unauthorised' }
   if (to.meta.guestOnly && authState.user) return { name: authState.user.role === 'Administrator' ? 'admin' : 'profile' }
 })
+
+const titles = { login: 'Sign in', register: 'Create an account', profile: 'My account', 'activity-map': 'Find activities', email: 'Send email', admin: 'Administration', unauthorised: 'Access denied' }
+router.afterEach((to) => { document.title = `${titles[to.name] || 'Home'} | GreenLink Melbourne` })
 
 export default router

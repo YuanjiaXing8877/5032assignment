@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { MAX_ATTACHMENT_BYTES, sendEmail } from '../services/email'
+import { focusTarget } from '../utils/accessibility'
 
 const form = reactive({ to: '', subject: '', message: '' })
 const files = ref([])
@@ -43,20 +44,21 @@ async function submit() {
       'functions/unavailable': 'Unable to confirm email acceptance. Check your inbox before trying again.'
     }
     error.value = messages[failure.code] || failure.message || 'Unable to send the email. Please try again.'
-  } finally { sending.value = false }
+  } finally { sending.value = false; focusTarget(error.value ? '#email-error' : '#email-success') }
 }
 </script>
 
 <template>
-  <main class="admin-page container-xl">
+  <main id="main-content" tabindex="-1" class="admin-page container-xl">
     <section class="welcome-row">
       <div><p class="eyebrow">Member communications</p><h1>Send email</h1><p>Share a message and attachments with your recipient.</p></div>
     </section>
     <section class="admin-section email-panel" aria-label="Compose email">
-      <Message v-if="error" severity="error" :closable="false" role="alert">{{ error }}</Message>
-      <Message v-if="success" severity="success" :closable="false" role="status">{{ success }}</Message>
-      <form @submit.prevent="submit">
+      <Message v-if="error" id="email-error" severity="error" :closable="false" role="alert">{{ error }}</Message>
+      <Message v-if="success" id="email-success" severity="success" :closable="false" role="status">{{ success }}</Message>
+      <form @submit.prevent="submit" :aria-busy="sending">
         <fieldset :disabled="sending" class="email-fields">
+          <legend class="sr-only">Message and attachments</legend>
           <div><label for="email-recipient">Recipient email</label><input id="email-recipient" v-model.trim="form.to" class="form-control" type="email" required maxlength="254" autocomplete="email" placeholder="name@example.com" /></div>
           <div><label for="email-subject">Subject</label><input id="email-subject" v-model="form.subject" class="form-control" required maxlength="150" /></div>
           <div><label for="email-message">Message</label><textarea id="email-message" v-model="form.message" class="form-control" required maxlength="10000" rows="7"></textarea></div>

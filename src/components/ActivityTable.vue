@@ -21,6 +21,6 @@ function statusSeverity(status) {
   <InteractiveTable :rows="activities" :columns="columns" label="Activity history">
     <template #activity="{ row }"><strong>{{ row.activity }}</strong></template>
     <template #status="{ row }"><Tag :value="row.status" :severity="statusSeverity(row.status)" /></template>
-    <template #rating="{ row }"><ActivityRating v-if="row.status === 'Completed'" :activity="row" /><span v-else class="rating-unavailable">Available after attendance</span></template>
+    <template #rating="{ row }"><ActivityRating :activity="row" :read-only="row.status !== 'Completed'" /><small v-if="row.status !== 'Completed'" class="rating-unavailable">Rate after attendance and completion</small></template>
   </InteractiveTable>
 </template>

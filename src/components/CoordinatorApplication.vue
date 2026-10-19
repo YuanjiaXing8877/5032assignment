@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { applyForCoordinator, authState, authErrorMessage } from '../services/auth'
+import { focusTarget } from '../utils/accessibility'
 const submitting = ref(false)
 const failure = ref('')
 async function apply() {
@@ -10,7 +11,7 @@ async function apply() {
   failure.value = ''
   try { await applyForCoordinator() }
   catch (error) { failure.value = authErrorMessage(error) }
-  finally { submitting.value = false }
+  finally { submitting.value = false; focusTarget('#coordinator-apply-title') }
 }
 </script>
 <template>

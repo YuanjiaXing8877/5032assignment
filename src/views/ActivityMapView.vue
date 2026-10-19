@@ -4,8 +4,9 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { RouterLink } from 'vue-router'
 import { activityStatus, useActivities } from '../services/activities'
-import { formatDuration, nearbyActivities, routeRequest } from '../utils/geo'
+import { directionsUrl, formatDuration, nearbyActivities, routeRequest } from '../utils/geo'
 import { loadMaps, mapError } from '../services/maps'
+import { focusTarget } from '../utils/accessibility'
 
 const mapElement = ref(null)
 const ready = ref(false)
@@ -30,6 +31,7 @@ const activities = computed(() => published.value.map((activity) => ({ ...activi
 const filtered = computed(() => nearbyActivities(activities.value, origin.value, radius.value, activitySearch.value))
 const selected = computed(() => filtered.value.find((activity) => activity.id === selectedId.value))
 const busy = computed(() => searching.value || locating.value || routing.value)
+const textDirections = computed(() => origin.value && selected.value ? directionsUrl(origin.value, selected.value.location, mode.value) : '')
 let api, map, geocoder, AdvancedMarkerElement, PinElement
 let markers = []
 let originMarker
@@ -58,7 +60,7 @@ function refreshMarkers() {
   if (!ready.value) return
   markers.forEach((marker) => { api.event.clearInstanceListeners(marker); marker.map = null })
   markers = filtered.value.map((activity) => {
-    const pin = new PinElement({ background: activity.id === selectedId.value ? '#24573c' : '#576c60', borderColor: '#fff', glyphColor: '#fff' })
+    const pin = new PinElement({ background: activity.id === selectedId.value ? '#234e70' : '#626e7d', borderColor: '#fff', glyphColor: '#fff' })
     const marker = new AdvancedMarkerElement({ map, position: activity.location, title: `${activity.activity} — ${activity.location.label}`, content: pin.element })
     marker.addListener('click', () => chooseActivity(activity))
     return marker
@@ -82,6 +84,7 @@ function setOrigin(point, label) {
   const pin = new PinElement({ background: '#286fa9', borderColor: '#fff', glyphColor: '#fff' })
   originMarker = new AdvancedMarkerElement({ map, position: point, title: 'Your starting point', content: pin.element })
   fitLocations([point, ...filtered.value.map((activity) => activity.location)])
+  focusTarget('#map-radius')
 }
 
 watch(query, () => {
@@ -94,9 +97,12 @@ watch(query, () => {
 }, { flush: 'sync' })
 
 watch([selectedId, mode], () => { clearRoute(); error.value = ''; refreshMarkers() })
-watch(filtered, (rows) => {
+watch(filtered, (rows, previous = []) => {
+  const before = previous.find(activity => activity.id === selectedId.value)
   if (!rows.some((activity) => activity.id === selectedId.value)) selectedId.value = rows[0]?.id ?? null
-  clearRoute()
+  const after = rows.find(activity => activity.id === selectedId.value)
+  if (before && after && (before.location.lat !== after.location.lat || before.location.lng !== after.location.lng)) clearRoute()
+  if (routeSummary.value && after) routeSummary.value.activity = after.activity
   refreshMarkers()
 })
 
@@ -111,8 +117,9 @@ async function searchAddress() {
     if (!active || id !== searchId) return
     results.value = response.results.slice(0, 5).map((result) => ({ id: result.place_id, label: result.formatted_address, point: result.geometry.location.toJSON() }))
     if (!results.value.length) error.value = 'No addresses found. Try a suburb, postcode or more specific street address.'
+    else focusTarget('#starting-address-results button')
   } catch (failure) { if (active && id === searchId) error.value = mapError(failure) }
-  finally { if (active) searching.value = false }
+  finally { if (active) { searching.value = false; if (error.value) focusTarget('#map-error') } }
 }
 
 function locate() {
@@ -155,7 +162,7 @@ async function calculateRoute() {
     await nextTick()
     routeHeading.value?.focus()
   } catch (failure) { if (active && id === requestId) error.value = mapError(failure) }
-  finally { if (active && id === requestId) routing.value = false }
+  finally { if (active && id === requestId) { routing.value = false; if (error.value) focusTarget('#map-error') } }
 }
 
 async function initialiseMap() {
@@ -196,12 +203,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="admin-page container-xl map-page">
+  <main id="main-content" tabindex="-1" class="admin-page container-xl map-page">
     <section class="welcome-row"><div><p class="eyebrow">Explore your neighbourhood</p><h1>Find activities</h1><p>Find local volunteer activities and plan your journey.</p></div></section>
     <p class="sample-note">Meeting points are provided by activity coordinators. Check the activity details before travelling.</p>
     <Message v-if="activityLoadError" severity="error" :closable="false" role="alert">{{ activityLoadError }}</Message>
     <RouterLink to="/profile#browse-activities">Browse activities and manage your bookings</RouterLink>
-    <Message v-if="error" severity="error" :closable="false" role="alert">{{ error }}</Message>
+    <Message v-if="error" id="map-error" severity="error" :closable="false" role="alert">{{ error }}</Message>
     <div class="map-layout">
       <section class="map-controls" aria-labelledby="journey-title">
         <h2 id="journey-title">Your starting point</h2>
@@ -209,7 +216,7 @@ onUnmounted(() => {
           <label for="map-address">Australian address, suburb or postcode</label>
           <div class="address-search"><input id="map-address" v-model="query" class="form-control" type="search" maxlength="200" placeholder="e.g. Footscray VIC" :disabled="!ready || busy" required /><Button type="submit" class="primary-button" label="Search" :disabled="!ready || busy || !query.trim()" :loading="searching" /></div>
         </form>
-        <ul v-if="results.length" class="address-results" aria-label="Choose a starting address"><li v-for="result in results" :key="result.id"><button type="button" @click="setOrigin(result.point, result.label)">{{ result.label }}</button></li></ul>
+        <ul v-if="results.length" id="starting-address-results" class="address-results" aria-label="Choose a starting address"><li v-for="result in results" :key="result.id"><button type="button" @click="setOrigin(result.point, result.label)">{{ result.label }}</button></li></ul>
         <p v-if="results.length" role="status">Choose an address above to set your starting point.</p>
         <Button type="button" class="outline-button location-button" label="Use my location" icon="pi pi-map-marker" outlined :disabled="!ready || busy" :loading="locating" @click="locate" />
         <p class="field-hint">Location access is optional. Address searches and route requests are sent to Google. Your location is not saved to your account.</p>
@@ -217,6 +224,8 @@ onUnmounted(() => {
         <div class="map-filter"><label for="map-radius">Distance from starting point</label><select id="map-radius" v-model.number="radius" class="form-select" :disabled="!origin || busy"><option :value="5">Within 5 km</option><option :value="10">Within 10 km</option><option :value="25">Within 25 km</option><option :value="0">Any distance</option></select><small class="field-hint">Nearby distances are straight-line estimates. Route distances follow roads and paths.</small></div>
         <div class="map-filter"><label for="map-activity-search">Search activities</label><input id="map-activity-search" v-model="activitySearch" class="form-control" type="search" placeholder="Activity or suburb" /></div>
         <h2 class="results-heading">Activities <small>({{ filtered.length }})</small></h2>
+        <p class="field-hint">Use the activity buttons below to choose a destination without interacting with the map.</p>
+        <p class="sr-only" role="status">{{ filtered.length }} matching activities.</p>
         <p v-if="!filtered.length" role="status">No activities match. Increase the distance or clear your activity search.</p>
         <ul class="activity-results"><li v-for="activity in filtered" :key="activity.id"><button type="button" :class="{ selected: selectedId === activity.id }" :aria-pressed="selectedId === activity.id" @click="chooseActivity(activity)"><strong>{{ activity.activity }}</strong><span>{{ activity.suburb }} · {{ activity.status }}</span><span v-if="activity.distance !== null">{{ activity.distance.toFixed(1) }} km from your starting point</span><small>{{ activity.location.label }}</small></button></li></ul>
       </section>
@@ -224,13 +233,14 @@ onUnmounted(() => {
         <section class="map-panel" aria-label="Activity map">
           <p v-if="loading" class="map-loading" role="status">Loading map…</p>
           <div v-if="mapFailure" class="map-failure" role="alert"><p>{{ mapFailure }}</p><Button class="outline-button" type="button" label="Retry map" outlined @click="initialiseMap" /></div>
-          <div ref="mapElement" class="google-map" :class="{ 'map-hidden': !ready }" aria-label="Map of volunteer activity locations"></div>
+          <div ref="mapElement" class="google-map" role="group" :class="{ 'map-hidden': !ready }" aria-label="Interactive map of volunteer activity locations"></div>
         </section>
         <section class="journey-panel" aria-labelledby="route-title">
           <h2 id="route-title">Plan your journey</h2>
           <p v-if="selected"><strong>{{ selected.activity }}</strong><br />{{ selected.location.label }}</p>
           <p v-else>Select an activity from the list.</p>
           <form class="route-form" @submit.prevent="calculateRoute"><div><label for="map-travel-mode">Travel mode</label><select id="map-travel-mode" v-model="mode" class="form-select" :disabled="busy"><option value="WALKING">Walking</option><option value="BICYCLING">Cycling</option><option value="DRIVING">Driving</option></select></div><Button type="submit" class="primary-button" label="Get route" icon="pi pi-directions" :loading="routing" :disabled="!ready || !origin || !selected || busy" /></form>
+          <p v-if="textDirections"><a :href="textDirections" target="_blank" rel="noopener noreferrer">Open directions to {{ selected.activity }} in Google Maps<span class="sr-only"> (opens a new tab)</span></a></p>
           <p v-if="!origin" class="field-hint">Search and choose a starting address, or use your location, to calculate a route.</p>
           <div v-if="routeSummary" class="route-summary" role="status"><h3 ref="routeHeading" tabindex="-1">{{ routeSummary.mode }} to {{ routeSummary.activity }}</h3><p><strong>{{ routeSummary.distance }}</strong> · About <strong>{{ routeSummary.duration }}</strong></p><p>Estimated journey time. Follow local signs and check conditions before travelling.</p><p v-for="(warning, index) in routeSummary.warnings" :key="index">{{ warning }}</p></div>
         </section>
@@ -250,12 +260,12 @@ onUnmounted(() => {
 .address-search .p-button, .route-form .p-button { flex-shrink: 0; }
 .location-button { margin: 14px 0 8px; }
 .map-filter { margin-top: 16px; }
-.origin-note { padding: 10px; background: #edf5f0; font-size: 13px; overflow-wrap: anywhere; }
+.origin-note { padding: 10px; background: #edf1f6; font-size: 13px; overflow-wrap: anywhere; }
 .address-results, .activity-results { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
-.address-results button, .activity-results button { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: white; text-align: left; color: var(--green-900); font-size: 13px; }
-.address-results button:hover, .activity-results button:hover, .activity-results button.selected { background: #e9f3ec; border-color: var(--green-700); }
-.activity-results button.selected { box-shadow: inset 3px 0 var(--green-700); }
-.activity-results span, .activity-results small { display: block; margin-top: 5px; color: #506159; }
+.address-results button, .activity-results button { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: white; text-align: left; color: var(--accent-strong); font-size: 13px; }
+.address-results button:hover, .activity-results button:hover, .activity-results button.selected { background: #edf1f6; border-color: var(--accent); }
+.activity-results button.selected { box-shadow: inset 3px 0 var(--accent); }
+.activity-results span, .activity-results small { display: block; margin-top: 5px; color: #566273; }
 .results-heading { margin: 24px 0 12px; }
 .results-heading small { font-size: 14px; }
 .map-content { display: grid; gap: 20px; }
@@ -265,9 +275,9 @@ onUnmounted(() => {
 .map-loading, .map-failure { margin: 0; padding: 32px; }
 .route-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
 .route-form > div { min-width: 170px; }
-.route-summary { margin-top: 20px; padding: 16px; border-radius: 4px; background: #edf5f0; }
+.route-summary { margin-top: 20px; padding: 16px; border-radius: 4px; background: #edf1f6; }
 .route-summary h3 { font-size: 17px; }
 .route-summary p { margin: 8px 0 0; font-size: 13px; }
-button:focus-visible, h3:focus-visible { outline: 2px solid var(--green-700); outline-offset: 3px; }
+button:focus-visible, h3:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 850px) { .map-layout { grid-template-columns: 1fr; } .google-map { height: 350px; } }
 </style>

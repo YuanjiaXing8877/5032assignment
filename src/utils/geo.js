@@ -30,3 +30,8 @@ export function formatDuration(milliseconds) {
   const minutes = Math.max(1, Math.ceil(milliseconds / 60000))
   return minutes >= 60 ? `${Math.floor(minutes / 60)} hr ${minutes % 60} min` : `${minutes} min`
 }
+
+export function directionsUrl(origin, destination, mode) {
+  if (!['WALKING', 'BICYCLING', 'DRIVING'].includes(mode)) throw new Error('Choose a supported travel mode.')
+  return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: '1', origin: `${origin.lat},${origin.lng}`, destination: `${destination.lat},${destination.lng}`, travelmode: mode.toLowerCase() })}`
+}

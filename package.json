@@ -6,6 +6,9 @@
   "scripts": {
     "test:geo": "node --test tests/geo.test.js",
     "test:tables": "node --test tests/table.test.js",
+    "test:samples": "node --test tests/sampleActivities.test.js",
+    "test:accessibility": "node --test tests/accessibility.test.js",
+    "seed:activities": "node scripts/seed-activities.mjs",
     "test:activities:integration": "firebase emulators:exec --config firebase.emulators.json --project demo-greenlink --only auth,firestore,functions 'node functions/test-support/activities-integration.mjs'",
     "dev": "vite",
     "build": "vite build",
@@ -22,6 +25,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
+    "axe-core": "^4.14.0",
     "vite": "^8.2.2"
   }
 }

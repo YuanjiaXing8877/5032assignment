@@ -28,13 +28,21 @@ New users can register as a Volunteer or apply for Coordinator access. Existing 
 1. A Volunteer opens **My account** (`/profile`) and clicks **Apply to be a coordinator**. The application shows as pending while Volunteer access remains available.
 2. An Administrator opens **Administration → Manage user roles**, refreshes the user list and chooses **Approve** or **Decline**. A declined applicant can apply again.
 3. The member's existing account page updates live to display **Coordinator** and **Manage your activities**. Coordinator tools are embedded in the same account page; browsing, booking and activity history remain available.
-4. The Coordinator creates an activity with its title, description, start/end in Melbourne time, capacity, suburb and a Google-searched meeting address. Published activities become available immediately in the activity list and map. The map and history use Firestore activities and bookings rather than demonstration records. A new deployment starts with an empty list until a coordinator publishes an activity.
+4. The Coordinator creates an activity with its title, description, start/end in Melbourne time, capacity, suburb and a Google-searched meeting address. Published activities become available immediately in the activity list and map. The map and history use Firestore activities and bookings. Six starter sample sessions also use this same backend and booking workflow.
 5. Coordinators can edit or cancel their own future activities and view their participants. An Administrator can manage all activities. Participants can book or withdraw before the start, subject to capacity. Cancelled activities stay visible in their history.
 6. Once an activity starts, its Coordinator can record attendance. Completed, attended activities contribute volunteer hours and allow ratings. A booking alone does not qualify for a completion rating.
 
 Activity mutations use the `manageActivity` callable function in `australia-southeast2`. Each transaction rechecks the caller's stored role, ownership, activity time and capacity. Concurrent last-place requests cannot overbook; repeated bookings are idempotent. Version checks protect edits from overwriting intervening changes. Firestore rules deny direct client writes to activities and bookings, and limit participant lists to the member, responsible Coordinator and Administrators. Personal booking mirrors are visible only to their owner.
 
 `npm --prefix functions test` runs activity validation/time-zone and email unit tests. `npm run test:activities:integration` starts the isolated `demo-greenlink` emulators and checks approval permissions, ownership, concurrent bookings, roster privacy, attendance, verified ratings, cancellation and role revocation. It requires Java and the Firebase CLI. To avoid attempting to read a real email secret locally, create ignored `functions/.secret.local` with a dummy `SENDGRID_API_KEY=local-test-only-not-a-real-key` before running the emulators. No production records are used. The optional `functions/test-support/seed-ui.mjs` fixture also refuses to run without local emulator hosts.
+
+### Starter activities
+
+`scripts/sampleActivities.js` defines six upcoming sample sessions with real Firestore activity documents, available places and meeting coordinates. The descriptions identify them as sample sessions and ask members to confirm arrangements with the coordinator before attending. Meeting points use council listings for [Buckingham Reserve](https://directory.brimbank.vic.gov.au/buckingham-reserve/), [Footscray Park](https://www.maribyrnong.vic.gov.au/Park/Footscray-Park) and [Yarraville Gardens](https://www.maribyrnong.vic.gov.au/Park/Yarraville-Gardens-Precinct).
+
+An authorised project maintainer can preview `npm run seed:activities -- --project PROJECT --coordinator EXISTING_COORDINATOR_UID`; add `--apply` to create the missing activities. This maintenance script uses the existing global Firebase CLI login. It verifies that the selected member is a Coordinator or Administrator, validates all activities with the backend validator and uses atomic create-only writes with stable IDs. It never overwrites existing activities, shifts their dates, resets bookings, invents attendance or modifies ratings. Re-running it keeps existing records. Preview dates for new entries start at least five days ahead in Melbourne time. Use `npm run test:samples` to verify the starter dataset.
+
+All published sessions appear in **My account → Browse activities**, including read-only community ratings. Booking a place adds a real record to **Activity history**; ratings become editable only after recorded attendance and completion. The map reads the same activity collection. Local UI checks can seed the same six sessions using `node functions/test-support/seed-ui.mjs --activities` with both emulator host variables set.
 
 ## BR C.1 Authentication
 
@@ -90,7 +98,11 @@ Activity mutations use the `manageActivity` callable function in `australia-sout
 ## Security note
 
 Vue Router guards control page navigation, while Firestore Security Rules protect role data independently of the interface. Public registration can only create a Volunteer profile, members cannot change their own role, and Administrator accounts can manage user documents. For a larger production system, privileged roles should additionally be issued as Firebase custom claims from a trusted server environment.
-# Attachment emails
+## Accessibility
+
+The interface uses navy controls, white cards, a pale-green page background and a warm-grey header, with keyboard-visible focus, skip navigation, descriptive route titles, linked form errors, focus management, keyboard-operated ratings and text alternatives alongside the map. See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification scope, repeatable checks and remaining manual screen-reader review. Run `npm run test:accessibility` for palette and keyboard-behaviour checks. Development audit controls (`?audit=1`) and axe-core are excluded from production output.
+
+## Attachment emails
 
 Signed-in members can open **Send email** to send a message with one to five attachments (5 MB combined). The server uses SendGrid and the member's authenticated email as Reply-To. Each account is limited to one attempt per minute and 20 attempts per UTC day, including failed attempts. Attachment data is forwarded to SendGrid without being stored in Firestore. A successful response means SendGrid accepted the email, rather than confirming inbox delivery.
 

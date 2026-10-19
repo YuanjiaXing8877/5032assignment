@@ -1,0 +1,125 @@
+{
+  "page": "/profile",
+  "title": "My account | GreenLink Melbourne",
+  "axe": "4.14.0",
+  "violations": [],
+  "incomplete": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+      "nodes": [
+        {
+          "target": [
+            "div[aria-label=\"Available activities table\"] > table > tbody > tr:nth-child(1) > td:nth-child(6)"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            ".read-only-rating.activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"5.0 out of 5 from 1 rating\"][role=\"img\"] > strong"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            ".read-only-rating.activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"5.0 out of 5 from 1 rating\"][role=\"img\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(1) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .rating-summary"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "#booking-action-completed-accessibility-session"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(3) > td:nth-child(6)"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(3) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"No ratings yet\"][role=\"img\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(3) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .rating-summary"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(5) > td:nth-child(6)"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(5) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"No ratings yet\"][role=\"img\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(5) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .rating-summary"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(7) > td:nth-child(6)"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(7) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"No ratings yet\"][role=\"img\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "tr:nth-child(7) > td:nth-child(7) > .read-only-rating.activity-rating[role=\"group\"] > .rating-summary"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "td:nth-child(6) > .activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"5.0 out of 5 from 1 rating\"][role=\"img\"] > strong"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "td:nth-child(6) > .activity-rating[role=\"group\"] > .aggregate-rating[aria-label=\"5.0 out of 5 from 1 rating\"][role=\"img\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            ".rating-prompt"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": [
+            "td:nth-child(6) > .activity-rating[role=\"group\"] > .rating-summary"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    }
+  ],
+  "passedRules": 49
+}

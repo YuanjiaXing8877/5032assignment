@@ -5,6 +5,7 @@ import Message from 'primevue/message'
 import InteractiveTable from '../components/InteractiveTable.vue'
 import { authErrorMessage, authState, listUserAccounts, reviewCoordinatorRequest, updateUserRole } from '../services/auth'
 import { activityStatus, useActivities } from '../services/activities'
+import { focusTarget } from '../utils/accessibility'
 
 const roleOptions = ['Volunteer', 'Coordinator', 'Administrator']
 const users = ref([])
@@ -73,8 +74,10 @@ async function saveRole(user) {
     userError.value = authErrorMessage(error)
   } finally {
     savingUserId.value = ''
+    focusTarget(`#user-role-${user.id}`, { scroll: false })
   }
 }
+async function refreshUsers() { await loadUsers(); focusTarget('#refresh-users', { scroll: false }) }
 
 async function reviewRequest(user, approved) {
   savingUserId.value = user.id; userError.value = ''; successMessage.value = ''
@@ -83,14 +86,14 @@ async function reviewRequest(user, approved) {
     successMessage.value = approved ? `${user.name || user.email} is now a Coordinator.` : 'Application declined.'
     await loadUsers()
   } catch (error) { userError.value = authErrorMessage(error) }
-  finally { savingUserId.value = '' }
+  finally { savingUserId.value = ''; focusTarget(`#user-role-${user.id}`, { scroll: false }) }
 }
 
 onMounted(loadUsers)
 </script>
 
 <template>
-  <main class="admin-page container-xl">
+  <main id="main-content" tabindex="-1" class="admin-page container-xl">
     <section class="welcome-row">
       <div>
         <p class="eyebrow">Protected administration area</p>
@@ -103,7 +106,7 @@ onMounted(loadUsers)
     <section class="admin-section" aria-labelledby="users-title">
       <div class="section-heading">
         <div><p class="eyebrow">User administration</p><h2 id="users-title">Manage user roles</h2></div>
-        <Button class="outline-button" type="button" label="Refresh" icon="pi pi-refresh" outlined :loading="loadingUsers" @click="loadUsers" />
+        <Button id="refresh-users" class="outline-button" type="button" label="Refresh" icon="pi pi-refresh" outlined :loading="loadingUsers" @click="refreshUsers" />
       </div>
 
       <Message v-if="userError" severity="error" :closable="false" role="alert">{{ userError }}</Message>
@@ -114,7 +117,7 @@ onMounted(loadUsers)
         <template #name="{ row: user }"><strong>{{ user.name || 'Unnamed member' }}</strong></template>
         <template #request="{ row: user }"><span class="request-badge" :class="{ pending: user.approvalStatus === 'Pending' }">{{ user.approvalStatus === 'Pending' ? 'Coordinator pending' : user.approvalStatus || 'Not requested' }}</span><div v-if="user.approvalStatus === 'Pending' && user.id !== authState.user.uid" class="d-flex gap-2 mt-2"><Button type="button" class="primary-button" label="Approve" :disabled="Boolean(savingUserId)" @click="reviewRequest(user, true)" /><Button type="button" class="outline-button" label="Decline" outlined :disabled="Boolean(savingUserId)" @click="reviewRequest(user, false)" /></div></template>
         <template #role="{ row: user }">
-          <select v-model="roleDrafts[user.id]" class="form-select role-select" :disabled="user.id === authState.user.uid || savingUserId === user.id" :aria-label="`Role for ${user.name || user.email}`">
+          <select :id="`user-role-${user.id}`" v-model="roleDrafts[user.id]" class="form-select role-select" :disabled="user.id === authState.user.uid || savingUserId === user.id" :aria-label="`Role for ${user.name || user.email}`">
             <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
           </select>
           <small v-if="user.id === authState.user.uid" class="field-hint">Your own role is protected</small>

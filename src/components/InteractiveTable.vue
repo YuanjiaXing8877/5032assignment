@@ -28,14 +28,14 @@ function clear() {
       <label class="table-search"><span>Search {{ label.toLowerCase() }}</span><input v-model="search" type="search" class="form-control" placeholder="Search all columns" /></label>
       <button type="button" class="table-control" :disabled="!hasFilters" @click="clear">Clear search</button>
     </div>
-    <div class="table-wrap" role="region" :aria-label="label" tabindex="0">
+    <div class="table-wrap" role="region" :aria-label="`${label} table`" tabindex="0">
       <table>
         <caption class="sr-only">{{ label }}. Sort using column headings or search using the fields below each heading. Up to 10 rows per page.</caption>
         <thead>
           <tr><th v-for="column in columns" :key="column.key" scope="col" :aria-sort="column.sortable === false ? undefined : sortKey === column.key ? (direction === 1 ? 'ascending' : 'descending') : 'none'">
             <button v-if="column.sortable !== false" type="button" class="table-sort" @click="sort(column)">{{ column.label }} <span aria-hidden="true">{{ sortKey === column.key ? (direction === 1 ? '↑' : '↓') : '↕' }}</span></button><span v-else>{{ column.label }}</span>
           </th></tr>
-          <tr><th v-for="column in columns" :key="column.key"><input v-if="column.searchable !== false" v-model="filters[column.key]" type="search" class="form-control column-search" :aria-label="`${label}: search ${column.label}`" :placeholder="`Search ${column.label.toLowerCase()}`" /></th></tr>
+          <tr class="table-filter-row"><td v-for="column in columns" :key="column.key"><input v-if="column.searchable !== false" v-model="filters[column.key]" type="search" class="form-control column-search" :aria-label="`${label}: search ${column.label}`" :placeholder="`Search ${column.label.toLowerCase()}`" /></td></tr>
         </thead>
         <tbody>
           <tr v-for="row in pagination.rows" :key="row[rowKey]"><td v-for="column in columns" :key="column.key"><slot :name="column.key" :row="row">{{ column.value ? column.value(row) : row[column.key] }}</slot></td></tr>
@@ -63,12 +63,13 @@ function clear() {
 .table-search span { display: block; margin-bottom: 6px; }
 .form-control { font-size: 13px; }
 .column-search { min-width: 130px; font-weight: 400; }
-th { background: #edf1ef; color: #44524b; }
+th { background: #f0efeb; color: #354153; }
+.table-filter-row td { background: #f0efeb; }
 .table-sort { border: 0; padding: 0; color: inherit; background: transparent; font: inherit; font-weight: 700; display: flex; align-items: center; gap: 10px; white-space: nowrap; text-align: left; }
-.table-control { border: 1px solid #879c90; border-radius: 4px; padding: 7px 10px; background: white; color: var(--green-800); font-size: 12px; }
+.table-control { border: 1px solid #737f8d; border-radius: 4px; padding: 7px 10px; background: white; color: var(--accent); font-size: 12px; }
 .table-control:disabled { opacity: .5; cursor: default; }
-button:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--green-700); outline-offset: 3px; }
+button:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .table-pagination { justify-content: space-between; margin: 14px 0; color: var(--muted); font-size: 12px; }
-tbody tr:nth-child(even) { background: #f7f9f8; }
+tbody tr:nth-child(even) { background: #f7f6f3; }
 @media (max-width: 575px) { .table-pagination nav { gap: 6px; } .table-control { padding: 7px; } }
 </style>

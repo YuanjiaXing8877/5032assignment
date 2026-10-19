@@ -1,0 +1,53 @@
+{
+  "page": "/activities/map",
+  "title": "Find activities | GreenLink Melbourne",
+  "axe": "4.14.0",
+  "viewport": {
+    "width": 320,
+    "height": 900
+  },
+  "doubledText": false,
+  "textSpacing": false,
+  "violations": [],
+  "incomplete": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+      "nodes": [
+        {
+          "target": [
+            "#navigation-toggle > span[aria-hidden=\"true\"]"
+          ],
+          "summary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": [
+            "li:nth-child(6) > button[type=\"button\"] > strong"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": [
+            "li:nth-child(6) > button[type=\"button\"] > span"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": [
+            "li:nth-child(6) > button[type=\"button\"] > small"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": [
+            "#route-title"
+          ],
+          "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        }
+      ]
+    }
+  ],
+  "passedRules": 48
+}

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { authState, logout as signOutUser } from '../services/auth'
+import { focusTarget } from '../utils/accessibility'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,18 +18,24 @@ async function logout() {
   await signOutUser()
   router.replace('/')
 }
+function closeMenu() {
+  if (!menuOpen.value) return
+  menuOpen.value = false
+  focusTarget('#navigation-toggle', { scroll: false })
+}
 </script>
 
 <template>
   <header class="site-header navbar navbar-expand-md">
     <div class="container-xl px-0">
-      <RouterLink class="brand navbar-brand" to="/" aria-label="GreenLink Melbourne home">
+      <RouterLink class="brand navbar-brand" to="/">
         <span class="brand-mark" aria-hidden="true">GL</span>
-        <span class="brand-name"><strong>GreenLink</strong><small class="d-none d-sm-block">Melbourne</small></span>
+        <span class="brand-name"><strong>GreenLink</strong> <small class="d-none d-sm-block">Melbourne</small></span>
       </RouterLink>
 
       <template v-if="isAuthenticated">
         <button
+          id="navigation-toggle"
           class="menu-button navbar-toggler"
           type="button"
           :aria-expanded="menuOpen"
@@ -39,7 +46,7 @@ async function logout() {
           <span aria-hidden="true">{{ menuOpen ? '×' : '☰' }}</span>
         </button>
 
-        <nav id="main-navigation" class="header-nav collapse navbar-collapse" :class="{ show: menuOpen }" aria-label="Main navigation">
+        <nav id="main-navigation" class="header-nav collapse navbar-collapse" :class="{ show: menuOpen }" aria-label="Main navigation" @keydown.esc.stop="closeMenu">
           <div class="navbar-nav ms-auto align-items-md-center">
             <RouterLink class="nav-link" to="/profile">My account</RouterLink>
             <RouterLink class="nav-link" to="/activities/map">Find activities</RouterLink>
