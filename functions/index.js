@@ -5,12 +5,20 @@ import { defineSecret, defineString } from 'firebase-functions/params'
 import { error as logError } from 'firebase-functions/logger'
 import { buildMail, deliverMail } from './mail.js'
 import { activityHandler } from './activities.js'
+import { bulkMailHandler } from './bulkMail.js'
+import { statisticsHandler } from './statistics.js'
 
 initializeApp()
 const apiKey = defineSecret('SENDGRID_API_KEY')
 const sender = defineString('SENDGRID_FROM_EMAIL')
 
 export const manageActivity = onCall({ region: 'australia-southeast2', timeoutSeconds: 30, maxInstances: 5 }, activityHandler(getFirestore()))
+export const getActivityStatistics = onCall({ region: 'australia-southeast2', timeoutSeconds: 60, memory: '256MiB', maxInstances: 3 }, statisticsHandler(getFirestore()))
+
+export const sendBulkEmail = onCall({ region: 'australia-southeast2', secrets: [apiKey], timeoutSeconds: 60, memory: '256MiB', maxInstances: 3 }, async request => {
+  if (!sender.value() || !apiKey.value()) throw new HttpsError('failed-precondition', 'Email service is not configured yet.')
+  return bulkMailHandler(getFirestore(), payload => deliverMail(payload, apiKey.value()))({ ...request, sender: sender.value() })
+})
 
 export const sendEmail = onCall({ region: 'australia-southeast2', secrets: [apiKey], timeoutSeconds: 60, memory: '256MiB', maxInstances: 5 }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Please sign in before sending an email.')

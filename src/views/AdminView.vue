@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import InteractiveTable from '../components/InteractiveTable.vue'
+import ActivityStatistics from '../components/ActivityStatistics.vue'
 import { authErrorMessage, authState, listUserAccounts, reviewCoordinatorRequest, updateUserRole } from '../services/auth'
 import { activityStatus, useActivities } from '../services/activities'
 import { focusTarget } from '../utils/accessibility'
@@ -103,6 +104,7 @@ onMounted(loadUsers)
       <span class="role-badge admin-badge">Administrator</span>
     </section>
 
+    <ActivityStatistics section-id="admin-statistics" />
     <section class="admin-section" aria-labelledby="users-title">
       <div class="section-heading">
         <div><p class="eyebrow">User administration</p><h2 id="users-title">Manage user roles</h2></div>

@@ -77,6 +77,12 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/activities/$(activityId)).data.coordinatorId == request.auth.uid));
         allow write: if false;
       }
+      match /emailBatches/{batchId} {
+        allow read: if signedIn() && (isAdministrator()
+          || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Coordinator'
+            && get(/databases/$(database)/documents/activities/$(activityId)).data.coordinatorId == request.auth.uid));
+        allow write: if false;
+      }
     }
 
     match /ratings/{ratingId} {

@@ -10,11 +10,13 @@ import { useActivities } from '../services/activities'
 import CoordinatorApplication from '../components/CoordinatorApplication.vue'
 import CoordinatorPanel from '../components/CoordinatorPanel.vue'
 import ActivityBrowser from '../components/ActivityBrowser.vue'
+import ActivityStatistics from '../components/ActivityStatistics.vue'
 
 const { activities, history, bookings, loading, error, now } = useActivities()
 const route = useRoute()
 const sections = computed(() => [
   { hash: '#overview', label: 'Overview' }, { hash: '#personal', label: 'Personal information' },
+  { hash: '#statistics', label: 'Statistics' },
   { hash: '#browse-activities', label: 'Browse activities' }, { hash: '#activity', label: 'Activity history' },
   ...(['Coordinator', 'Administrator'].includes(authState.user?.role) ? [{ hash: '#coordinator-tools', label: 'Coordinator tools' }] : [])
 ])
@@ -65,6 +67,7 @@ function updateUser(updatedUser) {
       <CoordinatorApplication />
       <CoordinatorPanel v-if="['Coordinator', 'Administrator'].includes(authState.user.role)" :activities="activities" :now="now" />
       <SummaryCards :summary="summary" />
+      <ActivityStatistics />
       <p v-if="loading" role="status">Loading activities…</p>
       <p v-if="error" class="field-error" role="alert">{{ error }}</p>
       <ActivityBrowser :activities="activities.filter(row => row.endAt > now || bookings[row.id]?.status === 'Booked')" :bookings="bookings" :now="now" />

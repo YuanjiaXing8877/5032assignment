@@ -1,11 +1,11 @@
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 
-export function buildMail(data, from, replyTo) {
+export function buildMail(data, from, replyTo, { requireAttachment = true } = {}) {
   const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/
   if (!data || typeof data.to !== 'string' || data.to.length > 254 || !emailPattern.test(data.to)) throw new Error('Enter a valid recipient email address.')
   if (typeof data.subject !== 'string' || !data.subject.trim() || data.subject.length > 150 || /[\r\n]/.test(data.subject)) throw new Error('Enter a subject of up to 150 characters.')
   if (typeof data.message !== 'string' || !data.message.trim() || data.message.length > 10000) throw new Error('Enter a message of up to 10,000 characters.')
-  if (!Array.isArray(data.attachments) || data.attachments.length < 1 || data.attachments.length > 5) throw new Error('Attach between one and five files.')
+  if (!Array.isArray(data.attachments) || data.attachments.length < (requireAttachment ? 1 : 0) || data.attachments.length > 5) throw new Error(requireAttachment ? 'Attach between one and five files.' : 'Attach no more than five files.')
   let total = 0
   const attachments = data.attachments.map((file) => {
     if (!file || typeof file.filename !== 'string' || !file.filename.trim() || file.filename.length > 180 || /[\x00-\x1f\x7f/\\]/.test(file.filename)) throw new Error('Invalid attachment filename.')
@@ -22,7 +22,7 @@ export function buildMail(data, from, replyTo) {
     ...(replyTo ? { reply_to: { email: replyTo } } : {}),
     subject: data.subject.trim(),
     content: [{ type: 'text/plain', value: data.message }],
-    attachments
+    ...(attachments.length ? { attachments } : {})
   }
 }
 
