@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import InteractiveTable from '../components/InteractiveTable.vue'
@@ -7,6 +8,16 @@ import ActivityStatistics from '../components/ActivityStatistics.vue'
 import { authErrorMessage, authState, listUserAccounts, reviewCoordinatorRequest, updateUserRole } from '../services/auth'
 import { activityStatus, useActivities } from '../services/activities'
 import { focusTarget } from '../utils/accessibility'
+
+const route = useRoute()
+const sections = [
+  { hash: '#admin-overview', label: 'Overview' },
+  { hash: '#admin-statistics', label: 'Statistics' },
+  { hash: '#admin-users', label: 'Users & requests' },
+  { hash: '#admin-permissions', label: 'Role permissions' },
+  { hash: '#admin-projects', label: 'Project overview' }
+]
+const isCurrentSection = hash => route.hash === hash || (!route.hash && hash === '#admin-overview')
 
 const roleOptions = ['Volunteer', 'Coordinator', 'Administrator']
 const users = ref([])
@@ -95,52 +106,75 @@ onMounted(loadUsers)
 
 <template>
   <main id="main-content" tabindex="-1" class="admin-page container-xl">
-    <section class="welcome-row">
-      <div>
-        <p class="eyebrow">Protected administration area</p>
-        <h1>Administrator dashboard</h1>
-        <p>Signed in as {{ authState.user.name }}. Manage role requests and review GreenLink operations.</p>
+    <div class="row g-3 g-lg-4">
+      <aside class="col-12 col-lg-3" aria-label="Administration sections">
+        <div class="profile-sidebar admin-sidebar">
+          <p class="sidebar-title">Administration</p>
+          <nav class="admin-sidebar-nav nav flex-row flex-lg-column" aria-label="Administration sections">
+            <RouterLink v-for="section in sections" :key="section.hash" v-slot="{ href, navigate }" :to="{ name: 'admin', hash: section.hash }" custom>
+              <a :href="href" class="nav-link" :class="{ active: isCurrentSection(section.hash) }" :aria-current="isCurrentSection(section.hash) ? 'location' : undefined" @click="navigate">{{ section.label }}</a>
+            </RouterLink>
+          </nav>
+        </div>
+      </aside>
+      <div class="admin-content col-12 col-lg-9">
+        <section id="admin-overview" class="welcome-row">
+          <div>
+            <p class="eyebrow">Protected administration area</p>
+            <h1>Administrator dashboard</h1>
+            <p>Signed in as {{ authState.user.name }}. Manage role requests and review GreenLink operations.</p>
+          </div>
+          <span class="role-badge admin-badge">Administrator</span>
+        </section>
+
+        <ActivityStatistics section-id="admin-statistics" />
+        <section id="admin-users" class="admin-section" aria-labelledby="users-title">
+          <div class="section-heading">
+            <div><p class="eyebrow">User administration</p><h2 id="users-title">Manage user roles</h2></div>
+            <Button id="refresh-users" class="outline-button" type="button" label="Refresh" icon="pi pi-refresh" outlined :loading="loadingUsers" @click="refreshUsers" />
+          </div>
+
+          <Message v-if="userError" severity="error" :closable="false" role="alert">{{ userError }}</Message>
+          <Message v-if="successMessage" severity="success" :closable="false" role="status">{{ successMessage }}</Message>
+          <p v-if="loadingUsers" class="loading-note" role="status">Loading user accounts…</p>
+
+          <InteractiveTable v-else :rows="users" :columns="userColumns" label="User accounts">
+            <template #name="{ row: user }"><strong>{{ user.name || 'Unnamed member' }}</strong></template>
+            <template #request="{ row: user }"><span class="request-badge" :class="{ pending: user.approvalStatus === 'Pending' }">{{ user.approvalStatus === 'Pending' ? 'Coordinator pending' : user.approvalStatus || 'Not requested' }}</span><div v-if="user.approvalStatus === 'Pending' && user.id !== authState.user.uid" class="d-flex gap-2 mt-2"><Button type="button" class="primary-button" label="Approve" :disabled="Boolean(savingUserId)" @click="reviewRequest(user, true)" /><Button type="button" class="outline-button" label="Decline" outlined :disabled="Boolean(savingUserId)" @click="reviewRequest(user, false)" /></div></template>
+            <template #role="{ row: user }">
+              <select :id="`user-role-${user.id}`" v-model="roleDrafts[user.id]" class="form-select role-select" :disabled="user.id === authState.user.uid || savingUserId === user.id" :aria-label="`Role for ${user.name || user.email}`">
+                <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
+              </select>
+              <small v-if="user.id === authState.user.uid" class="field-hint">Your own role is protected</small>
+            </template>
+            <template #action="{ row: user }"><Button class="primary-button role-save-button" type="button" label="Save role" :disabled="user.id === authState.user.uid || roleDrafts[user.id] === user.role || savingUserId === user.id" :loading="savingUserId === user.id" @click="saveRole(user)" /></template>
+          </InteractiveTable>
+        </section>
+
+        <section id="admin-permissions" class="admin-section" aria-labelledby="permissions-title">
+          <div class="section-heading">
+            <div><p class="eyebrow">Authorisation</p><h2 id="permissions-title">Role permission matrix</h2></div>
+          </div>
+          <InteractiveTable :rows="rolePermissions" :columns="permissionColumns" label="Role permissions" row-key="role" />
+        </section>
+
+        <section id="admin-projects" class="admin-section" aria-labelledby="projects-title">
+          <div class="section-heading"><div><p class="eyebrow">Operations</p><h2 id="projects-title">Project overview</h2></div></div>
+          <p v-if="activityLoadError" class="field-error" role="alert">{{ activityLoadError }}</p>
+          <InteractiveTable :rows="projects" :columns="projectColumns" label="Project overview">
+            <template #status="{ row }"><span class="role-badge">{{ activityStatus(row, now) }}</span></template>
+          </InteractiveTable>
+        </section>
       </div>
-      <span class="role-badge admin-badge">Administrator</span>
-    </section>
-
-    <ActivityStatistics section-id="admin-statistics" />
-    <section class="admin-section" aria-labelledby="users-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">User administration</p><h2 id="users-title">Manage user roles</h2></div>
-        <Button id="refresh-users" class="outline-button" type="button" label="Refresh" icon="pi pi-refresh" outlined :loading="loadingUsers" @click="refreshUsers" />
-      </div>
-
-      <Message v-if="userError" severity="error" :closable="false" role="alert">{{ userError }}</Message>
-      <Message v-if="successMessage" severity="success" :closable="false" role="status">{{ successMessage }}</Message>
-      <p v-if="loadingUsers" class="loading-note" role="status">Loading user accounts…</p>
-
-      <InteractiveTable v-else :rows="users" :columns="userColumns" label="User accounts">
-        <template #name="{ row: user }"><strong>{{ user.name || 'Unnamed member' }}</strong></template>
-        <template #request="{ row: user }"><span class="request-badge" :class="{ pending: user.approvalStatus === 'Pending' }">{{ user.approvalStatus === 'Pending' ? 'Coordinator pending' : user.approvalStatus || 'Not requested' }}</span><div v-if="user.approvalStatus === 'Pending' && user.id !== authState.user.uid" class="d-flex gap-2 mt-2"><Button type="button" class="primary-button" label="Approve" :disabled="Boolean(savingUserId)" @click="reviewRequest(user, true)" /><Button type="button" class="outline-button" label="Decline" outlined :disabled="Boolean(savingUserId)" @click="reviewRequest(user, false)" /></div></template>
-        <template #role="{ row: user }">
-          <select :id="`user-role-${user.id}`" v-model="roleDrafts[user.id]" class="form-select role-select" :disabled="user.id === authState.user.uid || savingUserId === user.id" :aria-label="`Role for ${user.name || user.email}`">
-            <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
-          </select>
-          <small v-if="user.id === authState.user.uid" class="field-hint">Your own role is protected</small>
-        </template>
-        <template #action="{ row: user }"><Button class="primary-button role-save-button" type="button" label="Save role" :disabled="user.id === authState.user.uid || roleDrafts[user.id] === user.role || savingUserId === user.id" :loading="savingUserId === user.id" @click="saveRole(user)" /></template>
-      </InteractiveTable>
-    </section>
-
-    <section class="admin-section" aria-labelledby="permissions-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">Authorisation</p><h2 id="permissions-title">Role permission matrix</h2></div>
-      </div>
-      <InteractiveTable :rows="rolePermissions" :columns="permissionColumns" label="Role permissions" row-key="role" />
-    </section>
-
-    <section class="admin-section" aria-labelledby="projects-title">
-      <div class="section-heading"><div><p class="eyebrow">Operations</p><h2 id="projects-title">Project overview</h2></div></div>
-      <p v-if="activityLoadError" class="field-error" role="alert">{{ activityLoadError }}</p>
-      <InteractiveTable :rows="projects" :columns="projectColumns" label="Project overview">
-        <template #status="{ row }"><span class="role-badge">{{ activityStatus(row, now) }}</span></template>
-      </InteractiveTable>
-    </section>
+    </div>
   </main>
 </template>
+
+<style scoped>
+.admin-content { min-width: 0; }
+.admin-content > [id] { scroll-margin-top: 20px; }
+.admin-sidebar-nav { flex-wrap: wrap; gap: 2px; }
+@media (min-width: 992px) {
+  .admin-sidebar { position: sticky; top: 20px; }
+}
+</style>
