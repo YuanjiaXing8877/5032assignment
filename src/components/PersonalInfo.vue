@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { sanitizeEmail, sanitizePhone, sanitizePlainText } from '../utils/sanitize'
+import { focusFirstError, focusTarget } from '../utils/accessibility'
 
 const props = defineProps({
   user: {
@@ -37,6 +38,7 @@ function startEditing() {
   clearErrors()
   savedMessage.value = ''
   editing.value = true
+  focusTarget('#profile-name')
 }
 
 function validateField(field) {
@@ -91,18 +93,20 @@ function sanitizeDraft() {
   otherLanguage.value = sanitizePlainText(otherLanguage.value, 60)
 }
 
-function saveDetails() {
+function saveDetails(event) {
   sanitizeDraft()
-  if (!validate()) return
+  if (!validate()) { focusFirstError(event.currentTarget); return }
   const selectedLanguage = languageChoice.value === 'Other' ? otherLanguage.value.trim() : languageChoice.value
   emit('save', { ...draft, language: selectedLanguage })
   editing.value = false
   savedMessage.value = 'Your personal information has been updated.'
+  focusTarget('#profile-edit-button')
 }
 
 function cancelEditing() {
   editing.value = false
   clearErrors()
+  focusTarget('#profile-edit-button')
 }
 </script>
 
@@ -113,7 +117,7 @@ function cancelEditing() {
         <p class="eyebrow">Account</p>
         <h2 id="personal-title">Personal information</h2>
       </div>
-      <Button v-if="!editing" class="outline-button" type="button" label="Edit details" icon="pi pi-pencil" outlined @click="startEditing" />
+      <Button v-if="!editing" id="profile-edit-button" class="outline-button" type="button" label="Edit details" icon="pi pi-pencil" outlined @click="startEditing" />
     </div>
 
     <Message v-if="savedMessage" severity="success" :closable="false" class="success-message" role="status">{{ savedMessage }}</Message>
@@ -131,23 +135,23 @@ function cancelEditing() {
       </table>
     </div>
 
-    <form v-else class="edit-form" @submit.prevent="saveDetails">
+    <form v-else class="edit-form" @submit.prevent="saveDetails" novalidate>
       <div class="form-grid row g-3">
         <div class="field-group col-12 col-md-6">
           <label for="profile-name">Full name <span aria-hidden="true">*</span></label>
-          <InputText id="profile-name" v-model.trim="draft.name" type="text" required minlength="2" :invalid="Boolean(errors.name)" :aria-invalid="Boolean(errors.name)" :aria-describedby="errors.name ? 'profile-name-error' : undefined" @blur="validateField('name')" @input="handleInput('name')" />
+          <InputText id="profile-name" autocomplete="name" v-model.trim="draft.name" type="text" required minlength="2" :invalid="Boolean(errors.name)" :aria-invalid="Boolean(errors.name)" :aria-describedby="errors.name ? 'profile-name-error' : undefined" @blur="validateField('name')" @input="handleInput('name')" />
           <small v-if="errors.name" id="profile-name-error" class="field-error">{{ errors.name }}</small>
         </div>
 
         <div class="field-group col-12 col-md-6">
           <label for="profile-email">Email address <span aria-hidden="true">*</span></label>
-          <InputText id="profile-email" v-model.trim="draft.email" type="email" required :invalid="Boolean(errors.email)" :aria-invalid="Boolean(errors.email)" :aria-describedby="errors.email ? 'profile-email-error' : undefined" @blur="validateField('email')" @input="handleInput('email')" />
+          <InputText id="profile-email" autocomplete="email" v-model.trim="draft.email" type="email" required :invalid="Boolean(errors.email)" :aria-invalid="Boolean(errors.email)" :aria-describedby="errors.email ? 'profile-email-error' : undefined" @blur="validateField('email')" @input="handleInput('email')" />
           <small v-if="errors.email" id="profile-email-error" class="field-error">{{ errors.email }}</small>
         </div>
 
         <div class="field-group col-12 col-md-6">
           <label for="profile-phone">Phone number <span aria-hidden="true">*</span></label>
-          <InputText id="profile-phone" v-model.trim="draft.phone" type="tel" required pattern="0[2-478](?:[ ]?[0-9]){8}" placeholder="04xx xxx xxx" :invalid="Boolean(errors.phone)" :aria-invalid="Boolean(errors.phone)" :aria-describedby="errors.phone ? 'profile-phone-error' : undefined" @blur="validateField('phone')" @input="handleInput('phone')" />
+          <InputText id="profile-phone" autocomplete="tel" v-model.trim="draft.phone" type="tel" required pattern="0[2-478](?:[ ]?[0-9]){8}" placeholder="04xx xxx xxx" :invalid="Boolean(errors.phone)" :aria-invalid="Boolean(errors.phone)" :aria-describedby="errors.phone ? 'profile-phone-error' : undefined" @blur="validateField('phone')" @input="handleInput('phone')" />
           <small v-if="errors.phone" id="profile-phone-error" class="field-error">{{ errors.phone }}</small>
         </div>
 
@@ -164,13 +168,13 @@ function cancelEditing() {
 
         <div class="field-group col-12 col-md-6">
           <label for="profile-suburb">Suburb <span aria-hidden="true">*</span></label>
-          <InputText id="profile-suburb" v-model.trim="draft.suburb" type="text" required :invalid="Boolean(errors.suburb)" :aria-invalid="Boolean(errors.suburb)" :aria-describedby="errors.suburb ? 'profile-suburb-error' : undefined" @blur="validateField('suburb')" @input="handleInput('suburb')" />
+          <InputText id="profile-suburb" autocomplete="address-level2" v-model.trim="draft.suburb" type="text" required :invalid="Boolean(errors.suburb)" :aria-invalid="Boolean(errors.suburb)" :aria-describedby="errors.suburb ? 'profile-suburb-error' : undefined" @blur="validateField('suburb')" @input="handleInput('suburb')" />
           <small v-if="errors.suburb" id="profile-suburb-error" class="field-error">{{ errors.suburb }}</small>
         </div>
 
         <div class="field-group col-12">
           <label for="profile-language">Preferred language <span aria-hidden="true">*</span></label>
-          <select id="profile-language" v-model="languageChoice" class="profile-select form-select" required :class="{ 'is-invalid': Boolean(errors.language) }" :aria-invalid="Boolean(errors.language)" :aria-describedby="errors.language ? 'profile-language-error' : undefined" @blur="validateField('language')" @change="handleLanguageChange">
+          <select id="profile-language" autocomplete="language" v-model="languageChoice" class="profile-select form-select" required :class="{ 'is-invalid': Boolean(errors.language) }" :aria-invalid="Boolean(errors.language)" :aria-describedby="errors.language ? 'profile-language-error' : undefined" @blur="validateField('language')" @change="handleLanguageChange">
             <option disabled value="">Select a language</option>
             <option v-for="language in languageOptions" :key="language" :value="language">{{ language }}</option>
           </select>
@@ -178,7 +182,7 @@ function cancelEditing() {
 
           <div v-if="languageChoice === 'Other'" class="other-language-field mt-3">
             <label for="profile-other-language">Other language <span aria-hidden="true">*</span></label>
-            <InputText id="profile-other-language" v-model.trim="otherLanguage" type="text" required maxlength="60" placeholder="Enter your preferred language" :invalid="Boolean(errors.otherLanguage)" :aria-invalid="Boolean(errors.otherLanguage)" :aria-describedby="errors.otherLanguage ? 'profile-other-language-error' : undefined" @blur="validateField('language')" @input="handleInput('otherLanguage')" />
+            <InputText id="profile-other-language" autocomplete="language" v-model.trim="otherLanguage" type="text" required maxlength="60" placeholder="Enter your preferred language" :invalid="Boolean(errors.otherLanguage)" :aria-invalid="Boolean(errors.otherLanguage)" :aria-describedby="errors.otherLanguage ? 'profile-other-language-error' : undefined" @blur="validateField('language')" @input="handleInput('otherLanguage')" />
             <small v-if="errors.otherLanguage" id="profile-other-language-error" class="field-error">{{ errors.otherLanguage }}</small>
           </div>
         </div>

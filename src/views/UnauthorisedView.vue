@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <main class="status-page container-xl">
+  <main id="main-content" tabindex="-1" class="status-page container-xl">
     <section>
       <i class="pi pi-lock" aria-hidden="true"></i>
       <p class="eyebrow">Access denied</p>

@@ -24,7 +24,7 @@ service cloud.firestore {
     }
 
     function validApprovalStatus(status) {
-      return status in ['Not requested', 'Pending', 'Approved'];
+      return status in ['Not requested', 'Pending', 'Approved', 'Rejected'];
     }
 
     match /users/{userId} {
@@ -46,18 +46,58 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['role', 'approvalStatus']))
         || (isOwner(userId)
+          && resource.data.role == 'Volunteer'
+          && resource.data.approvalStatus != 'Pending'
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.requestedRole == 'Coordinator'
+          && request.resource.data.approvalStatus == 'Pending'
+          && request.resource.data.requestedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['requestedRole', 'approvalStatus', 'requestedAt']))
+        || (isOwner(userId)
           && request.resource.data.role == resource.data.role
           && request.resource.data.requestedRole == resource.data.requestedRole
           && request.resource.data.approvalStatus == resource.data.approvalStatus
           && request.resource.data.email == resource.data.email);
 
       allow delete: if isAdministrator();
+
+      match /bookings/{activityId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    match /activities/{activityId} {
+      allow read: if signedIn();
+      allow write: if false;
+      match /registrations/{userId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdministrator()
+          || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Coordinator'
+            && get(/databases/$(database)/documents/activities/$(activityId)).data.coordinatorId == request.auth.uid));
+        allow write: if false;
+      }
+      match /emailBatches/{batchId} {
+        allow read: if signedIn() && (isAdministrator()
+          || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Coordinator'
+            && get(/databases/$(database)/documents/activities/$(activityId)).data.coordinatorId == request.auth.uid));
+        allow write: if false;
+      }
     }
 
     match /ratings/{ratingId} {
       allow read: if signedIn();
 
+      function attendedActivity() {
+        return exists(/databases/$(database)/documents/activities/$(request.resource.data.activityId))
+          && get(/databases/$(database)/documents/activities/$(request.resource.data.activityId)).data.status == 'Published'
+          && get(/databases/$(database)/documents/activities/$(request.resource.data.activityId)).data.endAt <= request.time.toMillis()
+          && get(/databases/$(database)/documents/activities/$(request.resource.data.activityId)/registrations/$(request.auth.uid)).data.status == 'Booked'
+          && get(/databases/$(database)/documents/activities/$(request.resource.data.activityId)/registrations/$(request.auth.uid)).data.attended == true;
+      }
+
       allow create: if signedIn()
+        && attendedActivity()
         && request.resource.data.keys().hasOnly([
           'activityId', 'activityTitle', 'userId', 'score', 'updatedAt'
         ])
@@ -71,6 +111,7 @@ service cloud.firestore {
         && request.resource.data.score <= 5;
 
       allow update: if signedIn()
+        && attendedActivity()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.activityId == resource.data.activityId

@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
-import Aura from '@primeuix/themes/aura'
+import theme from './theme'
 import App from './App.vue'
 import router from './router'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -16,7 +16,7 @@ initialiseAuth().catch((error) => {
     .use(PrimeVue, {
       ripple: true,
       theme: {
-        preset: Aura,
+        preset: theme,
         options: {
           darkModeSelector: false
         }

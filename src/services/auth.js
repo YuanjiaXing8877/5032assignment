@@ -8,7 +8,7 @@ import {
   signOut,
   updateProfile
 } from 'firebase/auth'
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseConfigured, firestore } from './firebase'
 import { sanitizeEmail, sanitizePlainText } from '../utils/sanitize'
 
@@ -28,6 +28,17 @@ function normaliseEmail(email) {
   return sanitizeEmail(email)
 }
 
+function publicUser(firebaseUser, account = {}) {
+  return {
+    id: firebaseUser.uid, uid: firebaseUser.uid,
+    name: account.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'GreenLink member',
+    email: firebaseUser.email,
+    role: allowedRoles.includes(account.role) ? account.role : 'Volunteer',
+    requestedRole: account.requestedRole || 'Volunteer',
+    approvalStatus: account.approvalStatus || 'Not requested'
+  }
+}
+
 async function createPublicUser(firebaseUser) {
   let account = {}
 
@@ -38,18 +49,12 @@ async function createPublicUser(firebaseUser) {
     console.error('Unable to load the user profile.', error)
   }
 
-  return {
-    id: firebaseUser.uid,
-    uid: firebaseUser.uid,
-    name: account.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'GreenLink member',
-    email: firebaseUser.email,
-    role: allowedRoles.includes(account.role) ? account.role : 'Volunteer',
-    requestedRole: account.requestedRole || 'Volunteer',
-    approvalStatus: account.approvalStatus || 'Not requested'
-  }
+  return publicUser(firebaseUser, account)
 }
 
 let initialisationPromise
+let stopProfile = () => {}
+let authRevision = 0
 
 export function initialiseAuth() {
   if (initialisationPromise) return initialisationPromise
@@ -63,7 +68,17 @@ export function initialiseAuth() {
   initialisationPromise = setPersistence(firebaseAuth, browserSessionPersistence)
     .then(() => new Promise((resolve) => {
       onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
-        authState.user = firebaseUser ? await createPublicUser(firebaseUser) : null
+        const revision = ++authRevision
+        stopProfile()
+        const user = firebaseUser ? await createPublicUser(firebaseUser) : null
+        if (revision !== authRevision) return
+        authState.user = user
+        if (firebaseUser) stopProfile = onSnapshot(doc(firestore, 'users', firebaseUser.uid), (snapshot) => {
+          if (revision === authRevision) authState.user = publicUser(firebaseUser, snapshot.data())
+        }, () => {
+          // Revoke staff UI if permissions cannot be refreshed; server checks remain authoritative.
+          if (revision === authRevision) authState.user = publicUser(firebaseUser)
+        })
         authState.ready = true
         resolve()
       })
@@ -137,6 +152,22 @@ export async function updateUserRole(userId, role) {
   await updateDoc(doc(firestore, 'users', userId), {
     role,
     approvalStatus: role === 'Volunteer' ? 'Not requested' : 'Approved'
+  })
+}
+
+export async function applyForCoordinator() {
+  requireFirebaseConfiguration()
+  if (authState.user?.role !== 'Volunteer') throw new Error('Only Volunteer accounts can apply.')
+  await updateDoc(doc(firestore, 'users', authState.user.uid), {
+    requestedRole: 'Coordinator', approvalStatus: 'Pending', requestedAt: serverTimestamp()
+  })
+}
+
+export async function reviewCoordinatorRequest(userId, approved) {
+  requireFirebaseConfiguration()
+  if (!isAdministrator.value || userId === authState.user.uid) throw new Error('auth/insufficient-permission')
+  await updateDoc(doc(firestore, 'users', userId), {
+    role: approved ? 'Coordinator' : 'Volunteer', approvalStatus: approved ? 'Approved' : 'Rejected'
   })
 }
 

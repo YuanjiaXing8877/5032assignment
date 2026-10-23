@@ -1,6 +1,8 @@
-# GreenLink Melbourne - Authentication and role-based access
+# GreenLink Melbourne
 
-This Vue application contains registration, login, user accounts and role-protected pages based on the GreenLink Melbourne proposal.
+A Vue application for finding volunteer activities, booking places and managing participation.
+
+Public website: [GreenLink Melbourne](https://projectgreenlink-b2380.web.app).
 
 ## Run locally
 
@@ -9,65 +11,47 @@ npm install
 npm run dev
 ```
 
-## Firebase setup
+Build with `npm run build`; view the production build locally with `npm run preview`.
 
-The application is connected to the `projectgreenlink-b2380` Firebase project. Local Firebase values are stored in the Git-ignored `.env.local`; `.env.example` documents the required variables.
+## Configuration
 
-In Firebase Console, enable **Authentication → Sign-in method → Email/Password** before registering users. Firestore is configured in the Melbourne region and its role rules are stored in `firestore.rules`.
+The Firebase project is `projectgreenlink-b2380`. Local frontend configuration is in the Git-ignored `.env.local` file. Its variables are `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` and `VITE_GOOGLE_MAPS_API_KEY`.
 
-New users can register as a Volunteer or apply for Coordinator access. Coordinator applications retain the Volunteer role with a `Pending` status until an Administrator approves them. To create the first Administrator, register normally and then change that user's `role` field in the Firestore `users` document to `Administrator`. After that, roles can be managed from the Administrator dashboard. This prevents public users from granting themselves staff privileges.
+The Google Maps browser key needs website and API restrictions for Maps JavaScript, Geocoding and Routes. Maps billing follows the Firebase project's linked Google Cloud billing account.
 
-## BR C.1 Authentication
+The email sender address is configured as `SENDGRID_FROM_EMAIL` in `functions/.env`. `SENDGRID_API_KEY` is stored in Firebase Secret Manager. The sender must be verified in SendGrid. An accepted email can still be rejected by the receiving mail server; check SendGrid activity for delivery status.
 
-- Register and log in with validated email/password fields
-- Passwords handled by Firebase Authentication and never stored by this application
-- Firebase session persistence ends when the browser session closes
-- Duplicate-account and invalid-credential errors
-- Log out action and protected personal account route
+## Features
 
-## BR C.2 Role-based authentication
+- Firebase email/password authentication and protected Volunteer, Coordinator and Administrator roles.
+- Coordinator applications, administrator approval and activity publishing/management.
+- Real Firestore activities, bookings, attendance and completed volunteer hours.
+- Activity calendar, booking capacity limits and server-side protection against overlapping bookings.
+- Community ratings for completed activities with recorded attendance.
+- Google Maps address search, nearby activity filtering and journey planning.
+- Attachment emails through SendGrid, with server-side validation and sending limits.
+- Coordinator bulk emails from an activity's participant list: selection, preview, optional attachments, separate recipient copies and recent sending records. Batches allow up to 50 participants and 100 addresses per sender per UTC day, with a one-minute interval. Server-side booking/ownership checks and request deduplication protect against duplicate submissions. Sending records distinguish provider acceptance, rejection and an unconfirmed result; acceptance does not confirm inbox delivery.
+- Interactive tables with sorting, global/column search and ten records per page.
+- Interactive statistics for personal participation, coordinator activities and administrator-wide reporting: monthly completed hours, activity participant counts and activity distribution by suburb. Month/suburb filters, selectable bars, accessible data tables and CSV/PDF detail exports use server-checked Firestore data. Hours require recorded attendance and a finished activity; cross-month sessions use actual elapsed Melbourne time. Reports load on opening or selecting Update charts, support up to 12 months and 500 activities, and return aggregates without participant identities.
+- CSV and PDF exports of all matching activity/history rows, including Chinese text and multi-page PDF reports.
+- Keyboard navigation, visible focus, form error associations, responsive layouts and text alternatives.
 
-- Three proposal-aligned roles: Volunteer, Coordinator and Administrator
-- Route metadata defines required authentication and allowed roles
-- A global navigation guard redirects unauthenticated users to login
-- `/admin` is restricted to Administrator accounts
-- Authenticated users without the required role see an access-denied page
-- Navigation only displays the Administration link to administrators
-- Administrators can review all Firebase user profiles and approve or change roles
-- Administrators cannot change their own role from the dashboard
+Published activities are stored in Firestore and managed by Coordinators or Administrators. The website reads them from the database.
 
-## BR C.3 Rating
+## Deployment
 
-- Completed activities provide an accessible 1–5 star rating control
-- Each user has one Firestore rating document per activity and can update it
-- All signed-in users see a live aggregate average and rating count
-- Submission, loading and error feedback are shown next to the rating control
-- Firestore rules validate ownership, document shape and the 1–5 score range
+Publish the backend and Firestore access rules when they change:
 
-## BR C.4 Security
+```bash
+firebase deploy --only functions:email,firestore:rules --project projectgreenlink-b2380
+```
 
-- Firebase Authentication handles passwords outside the application
-- Firestore rules enforce ownership, valid roles, approval states and rating ranges
-- A shared sanitisation utility normalises text, removes control characters and angle brackets, collapses abnormal whitespace and applies length limits
-- Registration, login, profile and rating write paths sanitise relevant text before validation or storage
-- Passwords are validated exactly as entered and are never silently modified
-- Vue interpolation is used for user content; the application does not use `v-html`
+Publish the website:
 
-## Other included features
+```bash
+firebase deploy --only hosting --project projectgreenlink-b2380
+```
 
-- Vue Router navigation between login and profile views
-- PrimeVue components with the Aura theme and PrimeIcons
-- Bootstrap 5 grid, navbar, spacing, display and responsive table utilities
-- Built-in HTML validation using required, email, minlength, maxlength and pattern
-- Custom JavaScript validation with field-level feedback
-- Vue events using @submit.prevent, @blur, @input and @click
-- Two-way form binding using v-model
-- Show and hide password interaction
-- Editable personal information with field-level validation
-- Personal information table and sortable PrimeVue DataTable activity history
-- Summary values computed from the activity data
-- Responsive layouts for phone, tablet, desktop and wide screens using Bootstrap breakpoints
+Hosting runs the production build, serves `dist` over HTTPS and supports client-side routes. Cloud Functions use Node.js 22 in `australia-southeast2`.
 
-## Security note
-
-Vue Router guards control page navigation, while Firestore Security Rules protect role data independently of the interface. Public registration can only create a Volunteer profile, members cannot change their own role, and Administrator accounts can manage user documents. For a larger production system, privileged roles should additionally be issued as Firebase custom claims from a trusted server environment.
+The PDF font is included in `src/assets/fonts/GreenLinkSans-Regular.ttf`; its required license is retained in `src/assets/fonts/OFL.txt`.
