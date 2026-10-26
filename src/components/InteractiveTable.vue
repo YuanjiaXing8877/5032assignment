@@ -77,7 +77,11 @@ async function exportRows(format, event) {
           <tr class="table-filter-row"><td v-for="column in columns" :key="column.key"><input v-if="column.searchable !== false" v-model="filters[column.key]" type="search" class="form-control column-search" :aria-label="`${label}: search ${column.label}`" :placeholder="`Search ${column.label.toLowerCase()}`" /></td></tr>
         </thead>
         <tbody>
-          <tr v-for="row in pagination.rows" :key="row[rowKey]"><td v-for="column in columns" :key="column.key"><slot :name="column.key" :row="row">{{ column.value ? column.value(row) : row[column.key] }}</slot></td></tr>
+          <tr v-for="(row, index) in pagination.rows" :key="row[rowKey]">
+            <td v-for="column in columns" :key="column.key">
+              <slot :name="column.key" :row="row" :number="pagination.start + index">{{ column.value ? column.value(row) : row[column.key] }}</slot>
+            </td>
+          </tr>
           <tr v-if="!selected.length"><td :colspan="columns.length" class="empty-table">{{ rows.length ? 'No matching records. Try changing or clearing your search.' : 'No records available.' }}</td></tr>
         </tbody>
       </table>
